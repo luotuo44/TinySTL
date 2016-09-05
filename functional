@@ -1,0 +1,11 @@
+//Author: luotuo44@gmail.com
+//Use of this source code is governed by a BSD-style license
+
+#ifndef FUNCTIONAL
+#define FUNCTIONAL
+
+
+#include"bits/stl_function.h"
+
+#endif // FUNCTIONAL
+
