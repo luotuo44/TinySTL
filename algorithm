@@ -1,0 +1,26 @@
+//Author: luotuo44@gmail.com
+//Use of this source code is governed by a BSD-style license
+
+#ifndef ALGORITHM
+#define ALGORITHM
+
+
+
+#include"iterator"
+
+#include"bits/stl_algobase.h"
+#include"bits/stl_algo.h"
+
+namespace stl
+{
+
+
+
+
+
+
+
+}
+
+#endif // ALGORITHM
+

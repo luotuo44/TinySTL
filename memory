@@ -1,0 +1,23 @@
+//Author: luotuo44@gmail.com
+//Use of this source code is governed by a BSD-style license
+
+#ifndef MEMORY
+#define MEMORY
+
+#include"bits/stl_construct.h"
+#include"bits/stl_uninitialized.h"
+#include"bits/stl_allocator.h"
+
+
+
+
+namespace stl
+{
+
+
+
+
+}
+
+#endif // MEMORY
+

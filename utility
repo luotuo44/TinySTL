@@ -1,0 +1,151 @@
+//Author: luotuo44@gmail.com
+//Use of this source code is governed by a BSD-style license
+
+#ifndef UTILITY
+#define UTILITY
+
+
+namespace stl
+{
+
+
+template<typename T>
+inline void swap(T &a, T &b)
+{
+    T tmp = a;
+    a = b;
+    b = tmp;
+}
+
+
+template<typename T, size_t N>
+void swap( T (&a)[N], T (&b)[N])
+{
+    for(size_t i = 0; i < N; ++i)
+    {
+        swap(a[i], b[i]);
+    }
+}
+
+
+template<typename U, typename V>
+struct pair
+{
+    typedef U first_type;
+    typedef V second_type;
+
+    pair();
+    pair(const first_type &u, const second_type &v);
+    template<typename U2, typename V2>
+    pair(const pair<U2, V2> &p);
+
+    pair& operator = (const pair &p);
+    void swap(pair &p);
+
+
+    first_type first;
+    second_type second;
+};
+
+
+
+template<typename U, typename V>
+pair<U, V>::pair()
+    : first(first_type()),
+      second(second_type())
+{
+}
+
+
+template<typename U, typename V>
+pair<U, V>::pair(const first_type &u, const second_type &v)
+    : first(u),
+      second(v)
+{
+}
+
+
+template<typename U, typename V>
+template<typename U2, typename V2>
+pair<U, V>::pair(const pair<U2, V2> &p)
+    : first(p.first),
+      second(p.second)
+{
+}
+
+template<typename U, typename V>
+pair<U, V>& pair<U, V>::operator = (const pair<U, V> &p)
+{
+    if( this != &p )
+    {
+        this->first = p.first;
+        this->second = p.second;
+    }
+
+    return *this;
+}
+
+
+template<typename U, typename V>
+void pair<U, V>::swap(pair<U, V> &p)
+{
+    stl::swap(this->first, p.first);
+    stl::swap(this->second, p.second);
+}
+
+
+//----------------------------------------------------------------
+template<typename U, typename V>
+inline bool operator == (const pair<U, V> &p1, const pair<U, V> &p2)
+{
+    return p1.first == p2.first && p1.second == p2.second;
+}
+
+
+template<typename U, typename V>
+inline bool operator != (const pair<U, V> &p1, const pair<U, V> &p2)
+{
+    return !(p1 == p2);
+}
+
+
+template<typename U, typename V>
+inline bool operator < (const pair<U, V> &p1, const pair<U, V> &p2)
+{
+    //假定U, V是严格弱序(Strict Weakly Comparable).用 x < y 和 y < x 都不为真表示x等于y
+    return p1.first < p2.first || ( !(p2.first < p1.first) && p1.second < p2.second);
+}
+
+
+template<typename U, typename V>
+inline bool operator > (const pair<U, V> &p1, const pair<U, V> &p2)
+{
+    return p2 < p1;
+}
+
+
+template<typename U, typename V>
+inline bool operator <= (const pair<U, V> &p1, const pair<U, V> &p2)
+{
+    return !(p1 > p2);
+}
+
+
+template<typename U, typename V>
+inline bool operator >= (const pair<U, V> &p1, const pair<U, V> &p2)
+{
+    return !(p1 < p2);
+}
+
+
+template<typename U, typename V>
+inline stl::pair<U, V> make_pair(const U &u, const V &v)
+{
+    return stl::pair<U, V>(u, v);
+}
+
+
+}
+
+#endif // UTILITY
+

@@ -1,0 +1,154 @@
+//Author: luotuo44@gmail.com
+//Use of this source code is governed by a BSD-style license
+
+#ifndef TYPE_TRAITS
+#define TYPE_TRAITS
+
+
+
+namespace stl
+{
+
+template<typename T, T val>
+struct integral_constant
+{
+    static const T value = val;
+    typedef T value_type;
+    typedef integral_constant<T, val> type;
+
+    operator value_type()
+    {
+        return value;
+    }
+};
+
+
+typedef integral_constant<bool, false> false_type;
+typedef integral_constant<bool, true> true_type;
+
+
+template<typename T>
+struct _type_traits
+{
+    typedef false_type has_trivial_destructor;
+    typedef false_type has_trivial_assignment_operator;
+    typedef false_type is_pod_type;
+};
+
+
+
+template<typename T>
+struct _type_traits<T*>
+{
+    typedef true_type has_trivial_destructor;
+    typedef true_type has_trivial_assignment_operator;
+    typedef true_type is_pod_type;
+};
+
+
+
+template<>
+struct _type_traits<bool>
+{
+    typedef true_type has_trivial_destructor;
+    typedef true_type has_trivial_assignment_operator;
+    typedef true_type is_pod_type;
+};
+
+
+template<>
+struct _type_traits<char>
+{
+    typedef true_type has_trivial_destructor;
+    typedef true_type has_trivial_assignment_operator;
+    typedef true_type is_pod_type;
+};
+
+
+template<>
+struct _type_traits<unsigned char>
+{
+    typedef true_type has_trivial_destructor;
+    typedef true_type has_trivial_assignment_operator;
+    typedef true_type is_pod_type;
+};
+
+
+template<>
+struct _type_traits<short>
+{
+    typedef true_type has_trivial_destructor;
+    typedef true_type has_trivial_assignment_operator;
+    typedef true_type is_pod_type;
+};
+
+
+template<>
+struct _type_traits<unsigned short>
+{
+    typedef true_type has_trivial_destructor;
+    typedef true_type has_trivial_assignment_operator;
+    typedef true_type is_pod_type;
+};
+
+
+template<>
+struct _type_traits<int>
+{
+    typedef true_type has_trivial_destructor;
+    typedef true_type has_trivial_assignment_operator;
+    typedef true_type is_pod_type;
+};
+
+
+template<>
+struct _type_traits<unsigned int>
+{
+    typedef true_type has_trivial_destructor;
+    typedef true_type has_trivial_assignment_operator;
+    typedef true_type is_pod_type;
+};
+
+
+template<>
+struct _type_traits<long>
+{
+    typedef true_type has_trivial_destructor;
+    typedef true_type has_trivial_assignment_operator;
+    typedef true_type is_pod_type;
+};
+
+
+template<>
+struct _type_traits<unsigned long>
+{
+    typedef true_type has_trivial_destructor;
+    typedef true_type has_trivial_assignment_operator;
+    typedef true_type is_pod_type;
+};
+
+
+template<>
+struct _type_traits<float>
+{
+    typedef true_type has_trivial_destructor;
+    typedef true_type has_trivial_assignment_operator;
+    typedef true_type is_pod_type;
+};
+
+
+
+
+template<>
+struct _type_traits<double>
+{
+    typedef true_type has_trivial_destructor;
+    typedef true_type has_trivial_assignment_operator;
+    typedef true_type is_pod_type;
+};
+
+
+}
+
+#endif // TYPE_TRAITS_H
+

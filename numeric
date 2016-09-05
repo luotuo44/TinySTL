@@ -1,0 +1,10 @@
+//Author: luotuo44@gmail.com
+//Use of this source code is governed by a BSD-style license
+
+#ifndef NUMERIC
+#define NUMERIC
+
+#include"bits/stl_numeric.h"
+
+#endif // NUMERIC
+
