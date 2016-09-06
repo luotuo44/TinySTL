@@ -29,7 +29,7 @@ struct binary_function
 template<typename T>
 struct plus : public binary_function<T, T, T>
 {
-    T operator () (const T &x, const T &y)
+    T operator () (const T &x, const T &y)const
     {
         return x + y;
     }
@@ -39,28 +39,19 @@ struct plus : public binary_function<T, T, T>
 template<typename T>
 struct minus : public binary_function<T, T, T>
 {
-    T operator () (const T &x, const T &y)
+    T operator () (const T &x, const T &y)const
     {
         return x - y;
     }
 };
 
 
-
-template<typename T>
-struct minus : public binary_function<T, T, T>
-{
-    T operator () (const T &x, const T &y)
-    {
-        return x - y;
-    }
-};
 
 
 template<typename T>
 struct multiplies : public binary_function<T, T, T>
 {
-    T operator () (const T &x, const T &y)
+    T operator () (const T &x, const T &y)const
     {
         return x * y;
     }
@@ -70,7 +61,7 @@ struct multiplies : public binary_function<T, T, T>
 template<typename T>
 struct divides : public binary_function<T, T, T>
 {
-    T operator () (const T &x, const T &y)
+    T operator () (const T &x, const T &y)const
     {
         return x / y;
     }
@@ -80,7 +71,7 @@ struct divides : public binary_function<T, T, T>
 template<typename T>
 struct modulus : public binary_function<T, T, T>
 {
-    T operator () (const T &x, const T &y)
+    T operator () (const T &x, const T &y)const
     {
         return x % y;
     }
@@ -90,7 +81,7 @@ struct modulus : public binary_function<T, T, T>
 template<typename T>
 struct negate : public unary_function<T, T>
 {
-    T operator () (const T &x)
+    T operator () (const T &x)const
     {
         return -x;
     }
@@ -103,7 +94,7 @@ struct negate : public unary_function<T, T>
 template<typename T>
 struct equal_to : public binary_function<T, T, bool>
 {
-    bool operator () (const T &x, const T &y)
+    bool operator () (const T &x, const T &y)const
     {
         return x == y;
     }
@@ -113,7 +104,7 @@ struct equal_to : public binary_function<T, T, bool>
 template<typename T>
 struct not_equal_to : public binary_function<T, T, bool>
 {
-    bool operator () (const T &x, const T &y)
+    bool operator () (const T &x, const T &y)const
     {
         return x != y;
     }
@@ -123,7 +114,7 @@ struct not_equal_to : public binary_function<T, T, bool>
 template<typename T>
 struct less : public binary_function<T, T, bool>
 {
-    bool operator () (const T &x, const T &y)
+    bool operator () (const T &x, const T &y)const
     {
         return x < y;
     }
@@ -133,7 +124,7 @@ struct less : public binary_function<T, T, bool>
 template<typename T>
 struct greater : public binary_function<T, T, bool>
 {
-    bool operator () (const T &x, const T &y)
+    bool operator () (const T &x, const T &y)const
     {
         return x > y;
     }
@@ -143,7 +134,7 @@ struct greater : public binary_function<T, T, bool>
 template<typename T>
 struct less_equal : public binary_function<T, T, bool>
 {
-    bool operator () (const T &x, const T &y)
+    bool operator () (const T &x, const T &y)const
     {
         return x <= y;
     }
@@ -153,7 +144,7 @@ struct less_equal : public binary_function<T, T, bool>
 template<typename T>
 struct greater_equal : public binary_function<T, T, bool>
 {
-    bool operator () (const T &x, const T &y)
+    bool operator () (const T &x, const T &y)const
     {
         return x >= y;
     }
@@ -165,7 +156,7 @@ struct greater_equal : public binary_function<T, T, bool>
 template<typename T>
 struct logical_and : public binary_function<T, T, bool>
 {
-    bool operator () (const T &x, const T &y)
+    bool operator () (const T &x, const T &y)const
     {
         return x && y;
     }
@@ -175,7 +166,7 @@ struct logical_and : public binary_function<T, T, bool>
 template<typename T>
 struct logical_or : public binary_function<T, T, bool>
 {
-    bool operator () (const T &x, const T &y)
+    bool operator () (const T &x, const T &y)const
     {
         return x || y;
     }
@@ -185,7 +176,7 @@ struct logical_or : public binary_function<T, T, bool>
 template<typename T>
 struct logical_not : public unary_function<T, bool>
 {
-    bool operator () (const T &x)
+    bool operator () (const T &x)const
     {
         return !x;
     }
@@ -196,7 +187,7 @@ struct logical_not : public unary_function<T, bool>
 template<typename T>
 struct bit_and : public binary_function<T, T, T>
 {
-    T operator () (const T &x, const T &)
+    T operator () (const T &x, const T &y)const
     {
         return x & y;
     }
@@ -206,7 +197,7 @@ struct bit_and : public binary_function<T, T, T>
 template<typename T>
 struct bit_or : public binary_function<T, T, T>
 {
-    T operator () (const T &x, const T &)
+    T operator () (const T &x, const T &y)const
     {
         return x | y;
     }
@@ -216,7 +207,7 @@ struct bit_or : public binary_function<T, T, T>
 template<typename T>
 struct bit_xor : public binary_function<T, T, T>
 {
-    T operator () (const T &x, const T &)
+    T operator () (const T &x, const T &y)const
     {
         return x ^ y;
     }
@@ -227,7 +218,7 @@ struct bit_xor : public binary_function<T, T, T>
 template<typename T>
 struct identity : public unary_function<T, T>
 {
-    const T& operator () (const T &x)
+    const T& operator () (const T &x)const
     {
         return x;
     }
@@ -237,7 +228,7 @@ struct identity : public unary_function<T, T>
 template<typename Pair>
 struct select1st : public unary_function<Pair, typename Pair::first_type>
 {
-    const typename Pair::first_type& operator () (const Pair &p)
+    const typename Pair::first_type& operator () (const Pair &p)const
     {
         return p.first;
     }
@@ -247,7 +238,7 @@ struct select1st : public unary_function<Pair, typename Pair::first_type>
 template<typename Pair>
 struct select2nd : public unary_function<Pair, typename Pair::second_type>
 {
-    const typename Pair::second_type& operator () (const Pair &p)
+    const typename Pair::second_type& operator () (const Pair &p)const
     {
         return p.second;
     }
@@ -258,7 +249,7 @@ struct select2nd : public unary_function<Pair, typename Pair::second_type>
 template<typename Arg1, typename Arg2>
 struct project1st : public binary_function<Arg1, Arg2, Arg1>
 {
-    const Arg1& operator () (const Arg1 &x, const Arg2&)
+    const Arg1& operator () (const Arg1 &x, const Arg2&)const
     {
         return x;
     }
@@ -268,7 +259,7 @@ struct project1st : public binary_function<Arg1, Arg2, Arg1>
 template<typename Arg1, typename Arg2>
 struct project2nd : public binary_function<Arg1, Arg2, Arg2>
 {
-    const Arg2& operator () (const Arg1 &, const Arg2 &y)
+    const Arg2& operator () (const Arg1 &, const Arg2 &y)const
     {
         return y;
     }

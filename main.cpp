@@ -8,13 +8,12 @@
 #include<algorithm>
 #include<string>
 
-#include"memory"
 #include"Test/testAlloc.h"
 #include"Test/testAlgorithm.h"
 #include"Test/testNumeric.h"
 #include"Test/testAlgobase.h"
 #include"Test/testAlgo.h"
-#include"numeric"
+#include"Test/testFunction.h"
 
 using namespace std;
 
@@ -26,6 +25,7 @@ int main()
     stl::testNumeric();
     stl::testAlgoBase();
     stl::testAlgo();
+    stl::testFunction();
 
     cout << "Hello World!" << endl;
     return 0;
