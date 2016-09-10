@@ -266,6 +266,171 @@ struct project2nd : public binary_function<Arg1, Arg2, Arg2>
 };
 
 
+//====================================================================================
+
+
+template<typename Predicate>
+class unary_negate : public unary_function<typename Predicate::argument_type, bool>
+{
+public:
+    explicit unary_negate(const Predicate &pred)
+        : m_pred(pred)
+    {}
+
+    bool operator () (const typename Predicate::argument_type &x)const
+    {
+        return !m_pred(x);
+    }
+
+private:
+    Predicate m_pred;
+};
+
+
+template<typename Predicate>
+inline unary_negate<Predicate> not1(const Predicate &pred)
+{
+    return unary_negate<Predicate>(pred);
+}
+
+
+
+template<typename Predicate>
+class binary_negate : public binary_function<typename Predicate::first_argument_type, typename Predicate::second_argument_type, bool>
+{
+public:
+    explicit binary_negate(const Predicate &pred)
+        : m_pred(pred)
+    {
+    }
+
+    bool operator () (const typename Predicate::first_argument_type &x, const typename Predicate::second_argument_type &y)const
+    {
+        return !m_pred(x, y);
+    }
+
+private:
+    Predicate m_pred;
+};
+
+
+
+template<typename Predicate>
+inline binary_negate<Predicate> not2(const Predicate &pred)
+{
+    return binary_negate<Predicate>(pred);
+}
+
+
+
+
+template<typename BinaryFunction>
+class binder1st : public unary_function<typename BinaryFunction::second_argument_type, typename BinaryFunction::result_type>
+{
+public:
+    binder1st(const BinaryFunction &op, const typename BinaryFunction::first_argument_type &x)
+        : m_op(op), m_x(x)
+    {}
+
+    typename BinaryFunction::result_type operator () (const typename BinaryFunction::second_argument_type &y)const
+    {
+        return m_op(m_x, y);
+    }
+
+private:
+    BinaryFunction m_op;
+    typename BinaryFunction::first_argument_type m_x;
+};
+
+
+
+template<typename BinaryFunction, typename T>
+inline binder1st<BinaryFunction> bind1st(const BinaryFunction &op, const T &x)
+{
+    return binder1st<BinaryFunction>(op, typename BinaryFunction::first_argument_type(x) );
+}
+
+
+
+template<typename BinaryFunction>
+class binder2nd : public unary_function<typename BinaryFunction::first_argument_type, typename BinaryFunction::result_type>
+{
+public:
+    binder2nd(const BinaryFunction &op, const typename BinaryFunction::second_argument_type &y)
+        : m_op(op), m_y(y)
+    {
+    }
+
+    typename BinaryFunction::result_type operator ()(const typename BinaryFunction::first_argument_type &x)const
+    {
+        return m_op(x, m_y);
+    }
+
+private:
+    BinaryFunction m_op;
+    typename BinaryFunction::second_argument_type m_y;
+};
+
+
+template<typename BinaryFunction, typename T>
+inline binder2nd<BinaryFunction> bind2nd(const BinaryFunction &op, const T &y)
+{
+    return binder2nd<BinaryFunction>(op, typename BinaryFunction::second_argument_type(y));
+}
+
+
+
+template<typename Arg, typename Result>
+class pointer_to_unary_function : public unary_function<Arg, Result>
+{
+public:
+    pointer_to_unary_function(Result (*p)(Arg))
+        : m_p(p)
+    {}
+
+    Result operator () (const Arg &x)const
+    {
+        return m_p(x);
+    }
+
+private:
+    Result (*m_p)(Arg);
+};
+
+
+template<typename Arg1, typename Arg2, typename Result>
+class pointer_to_binary_function : public binary_function<Arg1, Arg2, Result>
+{
+public:
+    pointer_to_binary_function(Result (*p)(Arg1, Arg2) )
+        : m_p(p)
+    {}
+
+    Result operator () (const Arg1 &x, const Arg2 &y)const
+    {
+        return m_p(x, y);
+    }
+
+private:
+    Result (*m_p)(Arg1, Arg2);
+};
+
+
+
+template<typename Arg, typename Result>
+inline pointer_to_unary_function<Arg, Result> ptr_fun(Result (*p)(Arg) )
+{
+    return pointer_to_unary_function<Arg, Result>(p);
+}
+
+
+template<typename Arg1, typename Arg2, typename Result>
+inline pointer_to_binary_function<Arg1, Arg2, Result> ptr_fun(Result (*p)(Arg1, Arg2) )
+{
+    return pointer_to_binary_function<Arg1, Arg2, Result>(p);
+}
+
+
 }
 
 #endif // STL_FUNCTION_H

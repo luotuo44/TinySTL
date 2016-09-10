@@ -9,6 +9,7 @@
 #include<string>
 
 #include"../utility"
+#include"../bits/stl_algo.h"
 
 namespace stl
 {
@@ -134,6 +135,42 @@ void testIspCase1()
 }
 
 
+
+bool isOdd(int x)
+{
+    return x&1;
+}
+
+
+bool isEqual(int x, int y)
+{
+    return x == y;
+}
+
+
+void testBaseAdapterCase1()
+{
+    int a1[] = {1, 2, 3, 4, 5, 6};
+    size_t n1 = sizeof(a1)/sizeof(a1[0]);
+
+    assert(find_if(a1, a1+n1, bind2nd(greater<int>(), 4)) == a1+4);
+    assert(find_if(a1, a1+n1, bind1st(less<int>(), 10)) == a1+n1);
+
+    assert(find_if(a1, a1+n1, not1(bind2nd(greater<int>(), 4))) == a1);
+
+
+    int a2[] = {-1, 0, 3, 4, 5, 6};
+
+    pair<int*, int*> match_p = mismatch(a1, a1+n1, a2, not2(equal_to<int>()));
+    assert(*match_p.first == 3 && *match_p.second == 3);
+
+
+    assert(find_if(a1, a1+n1, not1(ptr_fun(isOdd))) == a1+1);
+    match_p = mismatch(a1, a1+n1, a2, not2(ptr_fun(isEqual)));
+    assert(*match_p.first == 3 && *match_p.second == 3);
+}
+
+
 void testFunction()
 {
     testArithmeticOpCase1();
@@ -145,6 +182,9 @@ void testFunction()
     testBitOpCase1();
 
     testIspCase1();
+
+
+    testBaseAdapterCase1();
 
 }
 
