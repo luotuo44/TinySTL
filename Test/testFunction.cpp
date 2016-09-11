@@ -6,7 +6,13 @@
 
 #include<assert.h>
 
+#include<vector>
 #include<string>
+#include<list>
+#include<set>
+#include<iterator>
+#include<sstream>
+#include<algorithm>
 
 #include"../utility"
 #include"../bits/stl_algo.h"
@@ -148,6 +154,18 @@ bool isEqual(int x, int y)
 }
 
 
+bool minusOneEqual(int x, int y)
+{
+    return x-1 == y;
+}
+
+
+bool plusOneEqual(int x, int y)
+{
+    return x+1 == y;
+}
+
+
 void testBaseAdapterCase1()
 {
     int a1[] = {1, 2, 3, 4, 5, 6};
@@ -168,7 +186,142 @@ void testBaseAdapterCase1()
     assert(find_if(a1, a1+n1, not1(ptr_fun(isOdd))) == a1+1);
     match_p = mismatch(a1, a1+n1, a2, not2(ptr_fun(isEqual)));
     assert(*match_p.first == 3 && *match_p.second == 3);
+
+
+    std::vector<int> vec;
+    stl::transform(a1, a1+n1, std::back_inserter(vec), stl::compose1(stl::bind2nd(stl::plus<int>(), 3),  stl::bind2nd(stl::minus<int>(), 2)) );
+    assert(vec.size()==n1 && stl::equal(a1, a1+n1, vec.begin(), plusOneEqual));
+    vec.clear();
+
+
+    stl::transform(a1, a1+n1, std::back_inserter(vec), stl::compose2(stl::multiplies<int>(), stl::bind2nd(stl::plus<int>(), 1), stl::bind2nd(stl::minus<int>(), 1)));
+    std::vector<int> vec2;
+    stl::transform(a1, a1+n1, a1, std::back_inserter(vec2), stl::multiplies<int>());
+    //x^2 == (x-1) * (x+1) + 1
+    assert(stl::equal(vec.begin(), vec.end(), vec2.begin(), plusOneEqual));
 }
+
+
+
+void testMemFunCase1()
+{
+    int a1[] = {2, 1, 5 ,6, 4};
+    size_t n1 = sizeof(a1)/sizeof(a1[0]);
+    int a2[] = {11, 4, 67, 3, 14, 2};
+    size_t n2 = sizeof(a2)/sizeof(a2[0]);
+    std::list<int> s1(a1, a1+n1);
+    std::list<int> s2(a2, a2+n2);
+
+
+    std::list< std::list<int>* > slist;
+    slist.push_back(&s1);
+    slist.push_back(&s2);
+
+    //R (X::*p)(A)
+    //<void, std::list<int, std::allocator<int> >, const int&>
+    stl::for_each(slist.begin(), slist.end(), stl::bind2nd(stl::mem_fun(&std::list<int>::push_back), 0));
+
+    assert(slist.front()->back() == 0);
+    assert(slist.back()->back() == 0);
+
+
+    //R (X::*p)()
+    stl::for_each(slist.begin(), slist.end(), stl::mem_fun<void, std::list<int, std::allocator<int> > >(&std::list<int>::sort));
+    assert(stl::adjacent_find(s1.begin(), s1.end(), stl::greater<int>()) == s1.end());
+    assert(stl::adjacent_find(s2.begin(), s2.end(), stl::greater<int>()) == s2.end());
+
+
+    //R (X::*p)()const
+    std::ostringstream oss1;
+    stl::transform(slist.begin(), slist.end(), std::ostream_iterator<size_t>(oss1, ""), stl::mem_fun(&std::list<int>::size));
+
+    std::ostringstream oss2;
+    std::transform(slist.begin(), slist.end(), std::ostream_iterator<size_t>(oss2, ""), std::mem_fun(&std::list<int>::size));
+
+    assert(oss1.str() == oss2.str());
+
+
+
+    //R (X::*p)(A)const
+    std::set<int> ss1(a1, a1+n1);
+    std::set<int> ss2(a2, a2+n2);
+    std::list<std::set<int>* > slist2;
+    slist2.push_back(&ss1);
+    slist2.push_back(&ss2);
+
+    //std::set::find有两个版本，const和non-const。由于在mem_fun中，没有具体std::set<int>类型变量
+    //可以用于deduce，因此直接使用时会出现歧义。所以需要在这里确定使用哪个版本的find
+    typedef std::set<int>::iterator (std::set<int>::*ConstFunc)(const int &)const;
+    ConstFunc cf = &std::set<int>::find;
+
+    std::list<std::set<int>::iterator> it_list1, it_list2;
+    stl::transform(slist2.begin(), slist2.end(), std::back_inserter(it_list1), stl::bind2nd(stl::mem_fun(cf), 5));
+    std::transform(slist2.begin(), slist2.end(), std::back_inserter(it_list2), std::bind2nd(std::mem_fun(cf), 5));
+
+    assert(it_list1 == it_list2);
+}
+
+
+void testMemFunCase2()
+{
+    int a1[] = {2, 1, 5 ,6, 4};
+    size_t n1 = sizeof(a1)/sizeof(a1[0]);
+    int a2[] = {11, 4, 67, 3, 14, 2};
+    size_t n2 = sizeof(a2)/sizeof(a2[0]);
+    std::list<int> s1(a1, a1+n1);
+    std::list<int> s2(a2, a2+n2);
+
+
+    std::list< std::list<int> > slist;
+    slist.push_back(s1);
+    slist.push_back(s2);
+
+
+    //R (X::*p)(A)
+    //<void, std::list<int, std::allocator<int> >, const int&>
+    stl::for_each(slist.begin(), slist.end(), stl::bind2nd(stl::mem_fun_ref(&std::list<int>::push_back), 0));
+    std::for_each(slist.begin(), slist.end(), std::bind2nd(std::mem_fun_ref(&std::list<int>::push_back), 0));
+    assert(slist.front().back() == 0);
+    assert(slist.back().back() == 0);
+
+
+    //R (X::*p)()
+    stl::for_each(slist.begin(), slist.end(), stl::mem_fun_ref<void, std::list<int, std::allocator<int> > >(&std::list<int>::sort));
+    assert(stl::adjacent_find(slist.front().begin(), slist.front().end(), stl::greater<int>()) == slist.front().end());
+    assert(stl::adjacent_find(slist.back().begin(), slist.back().end(), stl::greater<int>()) == slist.back().end());
+
+
+    //R (X::*p)()const
+    std::ostringstream oss1;
+    stl::transform(slist.begin(), slist.end(), std::ostream_iterator<size_t>(oss1, ""), stl::mem_fun_ref(&std::list<int>::size));
+
+    std::ostringstream oss2;
+    std::transform(slist.begin(), slist.end(), std::ostream_iterator<size_t>(oss2, ""), std::mem_fun_ref(&std::list<int>::size));
+
+    assert(oss1.str() == oss2.str());
+
+
+
+    //R (X::*p)(A)const
+    std::set<int> ss1(a1, a1+n1);
+    std::set<int> ss2(a2, a2+n2);
+    std::list<std::set<int> > slist2;
+    slist2.push_back(ss1);
+    slist2.push_back(ss2);
+
+
+    //std::set::find有两个版本，const和non-const。由于在mem_fun中，没有具体std::set<int>类型变量
+    //可以用于deduce，因此直接使用时会出现歧义。所以需要在这里确定使用哪个版本的find
+    typedef std::set<int>::iterator (std::set<int>::*ConstFunc)(const int &)const;
+    ConstFunc cf = &std::set<int>::find;
+
+    std::list<std::set<int>::iterator> it_list1, it_list2;
+    stl::transform(slist2.begin(), slist2.end(), std::back_inserter(it_list1), stl::bind2nd(stl::mem_fun_ref(cf), 5));
+    std::transform(slist2.begin(), slist2.end(), std::back_inserter(it_list2), std::bind2nd(std::mem_fun_ref(cf), 5));
+
+    assert(it_list1 == it_list2);
+}
+
 
 
 void testFunction()
@@ -185,6 +338,9 @@ void testFunction()
 
 
     testBaseAdapterCase1();
+
+    testMemFunCase1();
+    testMemFunCase2();
 
 }
 

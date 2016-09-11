@@ -222,6 +222,11 @@ struct identity : public unary_function<T, T>
     {
         return x;
     }
+
+    T& operator () (T &x)const
+    {
+        return x;
+    }
 };
 
 
@@ -232,6 +237,11 @@ struct select1st : public unary_function<Pair, typename Pair::first_type>
     {
         return p.first;
     }
+
+    typename Pair::first_type& operator () (Pair &p)const
+    {
+        return p.first;
+    }
 };
 
 
@@ -239,6 +249,11 @@ template<typename Pair>
 struct select2nd : public unary_function<Pair, typename Pair::second_type>
 {
     const typename Pair::second_type& operator () (const Pair &p)const
+    {
+        return p.second;
+    }
+
+    typename Pair::second_type& operator () (Pair &p)const
     {
         return p.second;
     }
@@ -253,6 +268,11 @@ struct project1st : public binary_function<Arg1, Arg2, Arg1>
     {
         return x;
     }
+
+    Arg1& operator () (Arg1 &x, const Arg2 &)const
+    {
+        return x;
+    }
 };
 
 
@@ -260,6 +280,11 @@ template<typename Arg1, typename Arg2>
 struct project2nd : public binary_function<Arg1, Arg2, Arg2>
 {
     const Arg2& operator () (const Arg1 &, const Arg2 &y)const
+    {
+        return y;
+    }
+
+    Arg2& operator () (const Arg1 &, Arg2 &y)const
     {
         return y;
     }
@@ -337,6 +362,12 @@ public:
         return m_op(m_x, y);
     }
 
+    typename BinaryFunction::result_type operator () (typename BinaryFunction::second_argument_type &y)const
+    {
+        return m_op(m_x, y);
+    }
+
+
 private:
     BinaryFunction m_op;
     typename BinaryFunction::first_argument_type m_x;
@@ -362,6 +393,11 @@ public:
     }
 
     typename BinaryFunction::result_type operator ()(const typename BinaryFunction::first_argument_type &x)const
+    {
+        return m_op(x, m_y);
+    }
+
+    typename BinaryFunction::result_type operator ()(typename BinaryFunction::first_argument_type &x)const
     {
         return m_op(x, m_y);
     }
@@ -429,6 +465,323 @@ inline pointer_to_binary_function<Arg1, Arg2, Result> ptr_fun(Result (*p)(Arg1, 
 {
     return pointer_to_binary_function<Arg1, Arg2, Result>(p);
 }
+
+
+
+
+template<typename Operator1, typename Operator2>
+class unary_compose : public unary_function<typename Operator2::argument_type, typename Operator1::result_type>
+{
+public:
+    unary_compose(const Operator1 &op1, const Operator2 &op2)
+        : m_op1(op1), m_op2(op2)
+    {
+    }
+
+    typename Operator1::result_type operator () (const typename Operator2::argument_type &x)const
+    {
+        return m_op1(m_op2(x));
+    }
+
+private:
+    Operator1 m_op1;
+    Operator2 m_op2;
+};
+
+
+template<typename Operator1, typename Operator2>
+inline unary_compose<Operator1, Operator2> compose1(const Operator1 &op1, const Operator2 &op2)
+{
+    return unary_compose<Operator1, Operator2>(op1, op2);
+}
+
+
+template<typename Operator1, typename Operator2, typename Operator3>
+class binary_compose : public unary_function<typename Operator2::argument_type, typename Operator1::result_type>
+{
+public:
+    binary_compose(const Operator1 &op1, const Operator2 &op2, const Operator3 &op3)
+        : m_op1(op1), m_op2(op2), m_op3(op3)
+    {}
+
+    typename Operator1::result_type operator () (const typename Operator2::argument_type &x)const
+    {
+        return m_op1(m_op2(x), m_op3(x));
+    }
+
+private:
+    Operator1 m_op1;
+    Operator2 m_op2;
+    Operator3 m_op3;
+};
+
+
+template<typename Operator1, typename Operator2, typename Operator3>
+inline binary_compose<Operator1, Operator2, Operator3> compose2(const Operator1 &op1, const Operator2 &op2, const Operator3 &op3)
+{
+    return binary_compose<Operator1, Operator2, Operator3>(op1, op2, op3);
+}
+
+
+
+//===============================================================================================
+
+
+template<typename R, typename X>
+class mem_fun_t : public unary_function<X*, R>
+{
+public:
+    explicit mem_fun_t(R (X::*p)())
+        : m_p(p)
+    {
+    }
+
+
+    R operator ()(X *x)const
+    {
+        return (x->*m_p)();
+    }
+
+private:
+    R (X::*m_p)();
+};
+
+
+
+
+template<typename R, typename X>
+class mem_fun_ref_t : public unary_function<X, R>
+{
+public:
+    explicit mem_fun_ref_t(R (X::*p)())
+        : m_p(p)
+    {
+    }
+
+    R operator ()(X &x)const
+    {
+        return (x.*m_p)();
+    }
+
+private:
+    R (X::*m_p)();
+};
+
+
+
+
+template<typename R, typename X>
+class const_mem_fun_t : public unary_function<const X*, R>
+{
+public:
+    explicit const_mem_fun_t(R (X::*p)()const)
+        : m_p(p)
+    {}
+
+    R operator () (const X *x)const
+    {
+        return (x->*m_p)();
+    }
+
+private:
+    R (X::*m_p)()const;
+};
+
+
+
+
+template<typename R, typename X>
+class const_mem_fun_ref_t : public unary_function<X, R>
+{
+public:
+    explicit const_mem_fun_ref_t(R (X::*p)()const)
+        : m_p(p)
+    {
+    }
+
+    R operator () (const X &x)const
+    {
+        return (x.*m_p)();
+    }
+
+private:
+    R (X::*m_p)()const;
+};
+
+
+
+template<typename R, typename X, typename A>
+class mem_fun1_t : public binary_function<X*, A, R>
+{
+public:
+    explicit mem_fun1_t(R (X::*p)(A))
+        : m_p(p)
+    {
+    }
+
+
+    R operator ()(X *x, A a)const
+    {
+        return (x->*m_p)(a);
+    }
+
+private:
+    R (X::*m_p)(A);
+};
+
+
+
+template<typename R, typename X, typename A>
+class mem_fun1_ref_t : public binary_function<X, A, R>
+{
+public:
+    explicit mem_fun1_ref_t(R (X::*p)(A))
+        : m_p(p)
+    {}
+
+    R operator () (X &x, A a)const
+    {
+        return (x.*m_p)(a);
+    }
+
+private:
+    R (X::*m_p)(A);
+};
+
+
+
+template<typename R, typename X, typename A>
+class const_mem_fun1_t : public binary_function<const X*, A, R>
+{
+public:
+    explicit const_mem_fun1_t(R (X::*p)(A)const)
+        : m_p(p)
+    {}
+
+    R operator () (const X *x, A a)const
+    {
+        return (x->*m_p)(a);
+    }
+
+private:
+    R (X::*m_p)(A)const;
+};
+
+
+
+
+template<typename R, typename X, typename A>
+class const_mem_fun1_ref_t : public binary_function<X, A, R>
+{
+public:
+    explicit const_mem_fun1_ref_t(R (X::*p)(A) const)
+        : m_p(p)
+    {}
+
+    R operator () (const X &x, A a)const
+    {
+        return (x.*m_p)(a);
+    }
+
+private:
+    R (X::*m_p)(A)const;
+};
+
+
+
+
+template<typename R, typename X>
+inline mem_fun_t<R, X> mem_fun(R (X::*p)())
+{
+    return mem_fun_t<R, X>(p);
+}
+
+
+template<typename R, typename X>
+inline mem_fun_ref_t<R, X> mem_fun_ref(R (X::*p)())
+{
+    return mem_fun_ref_t<R, X>(p);
+}
+
+
+
+template<typename R, typename X>
+inline const_mem_fun_t<R, X> mem_fun( R (X::*p)()const )
+{
+    return const_mem_fun_t<R, X>(p);
+}
+
+
+template<typename R, typename X>
+inline const_mem_fun_ref_t<R, X> mem_fun_ref(R (X::*p)() const)
+{
+    return const_mem_fun_ref_t<R, X>(p);
+}
+
+
+//---------------------------------------
+
+template<typename R, typename X, typename A>
+inline mem_fun1_t<R, X, A> mem_fun(R (X::*p)(A))
+{
+    return mem_fun1_t<R, X, A>(p);
+}
+
+
+template<typename R, typename X, typename A>
+inline mem_fun1_ref_t<R, X, A> mem_fun_ref(R (X::*p)(A))
+{
+    return mem_fun1_ref_t<R, X, A>(p);
+}
+
+
+
+template<typename R, typename X, typename A>
+inline const_mem_fun1_t<R, X, A> mem_fun(R (X::*p)(A)const)
+{
+    return const_mem_fun1_t<R, X, A>(p);
+}
+
+
+
+template<typename R, typename X, typename A>
+inline const_mem_fun1_ref_t<R, X, A> mem_fun_ref(R (X::*p)(A)const)
+{
+    return const_mem_fun1_ref_t<R, X, A>(p);
+}
+
+
+//========================================================================================
+
+template<typename R, typename X>
+class mem_fun_type : public unary_function<X, R>
+{
+public:
+    explicit mem_fun_type(R (X::*p)())
+        : m_p(p)
+    {}
+
+    R operator () (X &x)const
+    {
+        return (x.*m_p)();
+    }
+
+    R operator () (X *x)const
+    {
+        return (x->*m_p)();
+    }
+
+private:
+    R (X::*m_p)();
+};
+
+
+template<typename R, typename X>
+inline mem_fun_type<R, X> mem_fn(R (X::*p)())
+{
+    return mem_fun_type<R, X>(p);
+}
+
 
 
 }
