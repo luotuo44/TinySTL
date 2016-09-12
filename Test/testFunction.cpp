@@ -226,7 +226,13 @@ void testMemFunCase1()
 
 
     //R (X::*p)()
-    stl::for_each(slist.begin(), slist.end(), stl::mem_fun<void, std::list<int, std::allocator<int> > >(&std::list<int>::sort));
+//    std::list::sort有两个版本，一个是无参，另外一个则有一个参数。直接使用&std::list<int>::sort，编译器无法deduce
+//    具体使用哪个。因此需要为函数mem_fun_ref指定模板参数，使得编译器可以根据模板参数deduce。也可以采用后面std::set处
+//    的方法，预先一个无参成员函数指针，如下
+//    typedef void (std::list<int>::*NonFunc)();
+//    NonFunc nf = &std::list<int>::sort;
+//    stl::for_each(slist.begin(), slist.end(), stl::mem_fun(nf));
+    stl::for_each(slist.begin(), slist.end(), stl::mem_fun<void, std::list<int> >(&std::list<int>::sort));
     assert(stl::adjacent_find(s1.begin(), s1.end(), stl::greater<int>()) == s1.end());
     assert(stl::adjacent_find(s2.begin(), s2.end(), stl::greater<int>()) == s2.end());
 
@@ -286,7 +292,13 @@ void testMemFunCase2()
 
 
     //R (X::*p)()
-    stl::for_each(slist.begin(), slist.end(), stl::mem_fun_ref<void, std::list<int, std::allocator<int> > >(&std::list<int>::sort));
+//    std::list::sort有两个版本，一个是无参，另外一个则有一个参数。直接使用&std::list<int>::sort，编译器无法deduce
+//    具体使用哪个。因此需要为函数mem_fun_ref指定模板参数，使得编译器可以根据模板参数deduce。也可以采用后面std::set处
+//    的方法，预先一个无参成员函数指针，如下
+//    typedef void (std::list<int>::*NonFunc)();
+//    NonFunc nf = &std::list<int>::sort;
+//    stl::for_each(slist.begin(), slist.end(), stl::mem_fun_ref(nf));
+    stl::for_each(slist.begin(), slist.end(), stl::mem_fun_ref<void, std::list<int> >(&std::list<int>::sort));
     assert(stl::adjacent_find(slist.front().begin(), slist.front().end(), stl::greater<int>()) == slist.front().end());
     assert(stl::adjacent_find(slist.back().begin(), slist.back().end(), stl::greater<int>()) == slist.back().end());
 
