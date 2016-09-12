@@ -85,6 +85,72 @@ inline typename iterator_traits<Iterator>::difference_type* distance_type(const 
 }
 
 
+
+template<typename InputIterator>
+typename iterator_traits<InputIterator>::difference_type __distance_dispatch(InputIterator first, InputIterator last, input_iterator_tag)
+{
+    iterator_traits<InputIterator>::difference_type n = 0;
+    while( first != last)
+    {
+        ++first;
+        ++n;
+    }
+
+    return n;
+}
+
+
+
+template<typename RandomAccessIterator>
+inline typename iterator_traits<RandomAccessIterator>::difference_type __distance_dispatch(RandomAccessIterator first, RandomAccessIterator last, random_access_iterator_tag)
+{
+    return last - first;
+}
+
+
+template<typename InputIterator>
+inline typename iterator_traits<InputIterator>::difference_type distance(InputIterator first, InputIterator last)
+{
+    return __distance_dispatch(first, last, iterator_category(first));
+}
+
+
+
+
+template<typename InputIterator, typename Distance>
+void __advance_dispatch(InputIterator &it, Distance n, input_iterator_tag)
+{
+    while( n-- ) ++it;
+
+    return it;
+}
+
+
+template<typename BidirectionalIterator, typename Distance>
+void __advance_dispatch(BidirectionalIterator &it, Distance n, bidirectional_iterator_tag)
+{
+    if( n > 0)
+        while(n--) ++it;
+    else
+        while(n++) --it;
+
+}
+
+
+template<typename RandomAccessIterator, typename Distance>
+inline void __advance_dispatch(RandomAccessIterator &it, Distance n, random_access_iterator_tag)
+{
+    it += n;
+}
+
+
+
+template<typename InputItertor, typename Distance>
+inline void advance(InputItertor &it, Distance n)
+{
+    __advance_dispatch(it, n, iterator_category(it));
+}
+
 }
 
 
