@@ -14,6 +14,7 @@
 #include"Test/testAlgobase.h"
 #include"Test/testAlgo.h"
 #include"Test/testFunction.h"
+#include"Test/testIterator.h"
 
 using namespace std;
 
@@ -26,6 +27,7 @@ int main()
     stl::testAlgoBase();
     stl::testAlgo();
     stl::testFunction();
+    stl::testItertor();
 
     cout << "Hello World!" << endl;
     return 0;

@@ -89,7 +89,7 @@ inline typename iterator_traits<Iterator>::difference_type* distance_type(const 
 template<typename InputIterator>
 typename iterator_traits<InputIterator>::difference_type __distance_dispatch(InputIterator first, InputIterator last, input_iterator_tag)
 {
-    iterator_traits<InputIterator>::difference_type n = 0;
+    typename iterator_traits<InputIterator>::difference_type n = 0;
     while( first != last)
     {
         ++first;
