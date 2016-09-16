@@ -9,6 +9,8 @@
 
 
 #include<assert.h>
+#include<stdlib.h>
+#include<time.h>
 
 #include<vector>
 #include<list>
@@ -55,6 +57,56 @@ void testInserterCase1()
 
 
 
+void testReverseIteratorCase1()
+{
+    typedef stl::reverse_iterator<std::vector<int>::iterator> RIterator;
+    typedef stl::reverse_iterator<std::vector<int>::const_iterator> ConstRIterator;
+
+
+    srand(time(NULL) + rand());
+
+    std::vector<int> vec;
+    vec.reserve(100);
+    for(int i = 0; i < 100; ++i)
+    {
+        vec.push_back(rand()%1000);
+    }
+
+    assert(stl::equal(vec.rbegin(), vec.rend(), RIterator(vec.end())));
+    assert(stl::equal(vec.rbegin(), vec.rend(), ConstRIterator(RIterator(vec.end()))) );
+
+
+    RIterator iter(vec.end());
+    std::vector<int>::reverse_iterator it = vec.rbegin();
+    iter += 10;
+    it += 10;
+    assert(iter.base() == it.base());
+
+    --iter;
+    --it;
+    assert(iter.base() == it.base());
+
+    iter -= 2;
+    it -= 2;
+    assert(iter.base() == it.base());
+
+    assert(it[4] == iter[4]);
+
+    RIterator cp_iter(iter++);
+    assert(iter != cp_iter);
+    assert(iter >= cp_iter);
+    assert(iter > cp_iter);
+
+    ++cp_iter;
+    assert(iter == cp_iter);
+    assert(iter <= cp_iter);
+    assert(iter >= cp_iter);
+
+    cp_iter++;
+    assert(iter != cp_iter);
+    assert(iter < cp_iter);
+    assert(cp_iter >= iter);
+}
 
 
 //================================================================================
@@ -62,6 +114,8 @@ void testInserterCase1()
 void testItertor()
 {
     testInserterCase1();
+
+    testReverseIteratorCase1();
 }
 
 
