@@ -448,12 +448,9 @@ void testCopyCase3()//测试InputIterator 的泛化版本
     std::string str1("a=34&b=223&c=37249&d=32423");
     stl::copy(SplitString<stl::input_iterator_tag>(str1, "&"), SplitString<stl::input_iterator_tag>(), std::back_inserter(vec1));
 
-
     std::copy(SplitString<std::input_iterator_tag>(str1, "&"), SplitString<std::input_iterator_tag>(), std::back_inserter(vec2));
 
-    assert(std::equal(vec1.begin(), vec1.end(), vec2.begin()));
-
-
+    assert(vec1 == vec2);
 }
 
 //一个递减迭代器，与iota相对应
@@ -589,8 +586,50 @@ void testCopyCase4()//测试RandomIterator 泛化版本
     stl::copy(IntDec<stl::random_access_iterator_tag>(10), IntDec<stl::random_access_iterator_tag>(0), std::back_inserter(vec1));
     std::copy(IntDec<std::random_access_iterator_tag>(10), IntDec<std::random_access_iterator_tag>(0), std::back_inserter(vec2));
 
+    assert(vec1 == vec2);
+}
 
-    assert(std::equal(vec1.begin(), vec1.end(), vec2.begin()));
+
+void testCopyBackwardCase1()//测试特化版本<T*, T*>和<const T*, T*>
+{
+    int arr[10];
+    stl::iota(arr, arr+10, 0);
+    int brr[10];
+
+    stl::copy_backward(arr, arr+10, brr+10);
+    assert(std::equal(arr, arr+10, brr));
+
+    int crr[10];
+    const int *p = arr;
+    stl::copy_backward(p, p+10, crr+10);
+    assert(std::equal(arr, arr+10, crr));
+
+
+
+    CopyTest ct[2] = { {1, 2}, {2, 3} };
+    CopyTest ct2[2];
+    stl::copy_backward(ct, ct+2, ct2+2);
+
+    assert(std::equal(ct, ct+2, ct2));
+
+    CopyTest ct3[2];
+    const CopyTest *q = ct;
+    stl::copy_backward(q, q+2, ct3+2);
+    assert(std::equal(ct, ct+2, ct3));
+}
+
+
+void testCopyBackwardCase2()//测试RandomIterator和BidirectionalIterator版本
+{
+    std::vector<int> vec1(10), vec2(10);
+    stl::copy_backward(IntDec<stl::random_access_iterator_tag>(10), IntDec<stl::random_access_iterator_tag>(0), vec1.end());
+    std::copy_backward(IntDec<std::random_access_iterator_tag>(10), IntDec<std::random_access_iterator_tag>(0), vec2.end());
+    assert(vec1 == vec2);
+
+
+    stl::copy_backward(IntDec<stl::bidirectional_iterator_tag>(10), IntDec<stl::bidirectional_iterator_tag>(0), vec1.end());
+    std::copy_backward(IntDec<std::bidirectional_iterator_tag>(10), IntDec<std::bidirectional_iterator_tag>(0), vec2.end());
+    assert(vec1 == vec2);
 }
 
 
@@ -622,6 +661,10 @@ void testAlgoBase()
     testCopyCase2();
     testCopyCase3();
     testCopyCase4();
+
+
+    testCopyBackwardCase1();
+    testCopyBackwardCase2();
 }
 
 }

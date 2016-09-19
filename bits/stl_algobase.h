@@ -184,6 +184,7 @@ stl::pair<InputIterator1, InputIterator2> mismatch(InputIterator1 first1, InputI
 }
 
 
+//======================================copy=================================
 
 
 template<typename InputIterator, typename OutputIterator, typename Distance>
@@ -279,6 +280,80 @@ inline unsigned char* copy(const unsigned char *first, const unsigned char *last
 {
     memmove(result, first, last - first);
     return result + (last - first);
+}
+
+
+
+
+
+//================================copy_backward=========================
+
+
+template<typename BidirectionalIterator1, typename BidirectionalIterator2>
+BidirectionalIterator2 __copy_backward_aux(BidirectionalIterator1 first, BidirectionalIterator1 last, BidirectionalIterator2 result, bidirectional_iterator_tag)
+{
+    while(last != first)
+    {
+        *--result = *--last;
+    }
+
+    return result;
+}
+
+
+template<typename RandomAccessIterator, typename BidirectionalIterator2>
+BidirectionalIterator2 __copy_backward_aux(RandomAccessIterator first, RandomAccessIterator last, BidirectionalIterator2 result, random_access_iterator_tag)
+{
+    typename iterator_traits<RandomAccessIterator>::difference_type distance = last - first;
+
+    while( distance-- > 0)
+    {
+        *--result = *--last;
+    }
+
+    return result;
+}
+
+
+template<typename BidirectionalIterator1, typename BidirectionalIterator2, typename BoolType>
+struct __copy_backward_dispatch
+{
+public:
+    BidirectionalIterator2 operator()(BidirectionalIterator1 first, BidirectionalIterator1 last, BidirectionalIterator2 result)
+    {
+        return __copy_backward_aux(first, last, result, iterator_category(first));
+    }
+};
+
+
+template<typename T>
+struct __copy_backward_dispatch<T*, T*, true_type>
+{
+    T* operator() (T *first, T *last, T *result)
+    {
+        return __copy_backward_dispatch<const T*, T*, true_type>()(first, last, result);
+    }
+};
+
+
+template<typename T>
+struct __copy_backward_dispatch<const T*, T*, true_type>
+{
+    T* operator() (const T *first, const T *last, T *result)
+    {
+        ptrdiff_t n = last - first;
+        ::memmove(result-n, first, n*sizeof(T));
+
+        return result - n;
+    }
+};
+
+
+template<typename BidirectionalIterator1, typename BidirectionalIterator2>
+inline BidirectionalIterator2 copy_backward(BidirectionalIterator1 first, BidirectionalIterator1 last, BidirectionalIterator2 result)
+{
+    typedef typename _type_traits<typename iterator_traits<BidirectionalIterator2>::value_type>::has_trivial_assignment_operator trivial;
+    return __copy_backward_dispatch<BidirectionalIterator1, BidirectionalIterator2, trivial>()(first, last, result);
 }
 
 
