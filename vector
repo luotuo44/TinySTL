@@ -1,0 +1,20 @@
+//Author: luotuo44@gmail.com
+//Use of this source code is governed by a BSD-style license
+
+#ifndef VECTOR
+#define VECTOR
+
+#include<stddef.h>
+
+#include"bits/stl_algobase.h"
+#include"bits/stl_allocator.h"
+#include"bits/stl_construct.h"
+#include"bits/stl_uninitialized.h"
+
+#include"bits/stl_iterator_base.h"
+#include"bits/stl_iterator.h"
+
+#include"bits/stl_vector.h"
+
+#endif // VECTOR
+
