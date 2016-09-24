@@ -337,7 +337,7 @@ inline vector& vector<T, Allocator>::operator = (const vector &vec)
 {
     if( this != &vec )
     {
-        return assign(vec.begin(), vec.end());
+        assign(vec.begin(), vec.end());
     }
 
     return *this;
@@ -477,7 +477,7 @@ void vector<T, Allocator>::reverse(size_type n)
 
 
 template<typename T, typename Allocator>
-void vector<T, Allocator>::resize(size_type n, const T &val)
+inline void vector<T, Allocator>::resize(size_type n, const T &val)
 {
     if( n < size() )
         __resize_small(n);
@@ -732,7 +732,7 @@ vector<T, Allocator>::iterator vector<T, Allocator>::erase(iterator pos)
     }
     else
     {
-        copy(pos+1, end(), pos);
+        stl::copy(pos+1, end(), pos);
 
         --m_finish;
         m_allocator.destroy(m_finish);
@@ -751,14 +751,14 @@ vector<T, Allocator>::iterator vector<T, Allocator>::erase(iterator first, itera
         {
             stl::destroy(first, last);
         }
-        catch(...)
+        catch(...)//eat it
         {}
 
         m_finish -= last - first;
     }
     else
     {
-        copy(last, end(), first);
+        stl::copy(last, end(), first);
 
         iterator old_finish = m_finish;
         m_finish -= last - first;
