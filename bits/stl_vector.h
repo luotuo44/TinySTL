@@ -134,7 +134,7 @@ private:
 //为保证异常安全，局部的资源，须由局部类变量管理。
 //为此，vector的内部实现依靠vector_construct_helper和vector_destroy_helper这两个
 //类管理局部资源。
-template<typename T, typename Allocator = stl::allocator<int> >
+template<typename T, typename Allocator = stl::allocator<T> >
 class vector
 {
 private:
@@ -203,30 +203,53 @@ public:
     void swap(vector &vec);
     void clear();
 
-    void assign(size_type n, const T& val = T());
-    template<typename InputIterator>
-    void assign(InputIterator first, InputIterator last);
-
-    void reverse(size_type n);
+    void reserve(size_type n);
     void resize(size_type n, const T &val = T());
 
 private:
+    //之所以有range和fill的分派，是因为vector(n, val)和vector(first, last)在调用的时候无法正确模板deduce
+    //比如vector(10, 20),既可以是n,val 也可以是first,last。因此需要分派
     template<typename InputIterator>
-    void __vector_dispatch(InputIterator first, InputIterator last, input_iterator_tag);
+    void __vector_range_fill_dispatch(InputIterator first, InputIterator last, true_type);
+    template<typename InputIterator>
+    void __vector_range_fill_dispatch(InputIterator first, InputIterator last, false_type);
+
+
+    void __vector_fill_n(size_type n, const T &val);
+    template<typename InputIterator>
+    void __vector_range(InputIterator first, InputIterator last);
+
+    template<typename InputIterator>
+    void __vector_range_dispatch(InputIterator first, InputIterator last, input_iterator_tag);
     template<typename ForwardIterator>
-    void __vector_dispatch(ForwardIterator first, ForwardIterator last, forward_iterator_tag);
+    void __vector_range_dispatch(ForwardIterator first, ForwardIterator last, forward_iterator_tag);
 
 
     template<typename InputIterator>//call by vector constructor
     void __vector_copy_n(InputIterator first, InputIterator last, size_type n);
 
-    template<typename InputIterator>
-    void __assign_dispatch(InputIterator first, InputIterator last, input_iterator_tag);
-    template<typename ForwardIterator>
-    void __assign_dispatch(ForwardIterator first, ForwardIterator last, forward_iterator_tag);
 
     void __resize_small(size_type n);
     void __resize_big(size_type n, const T &val);
+
+public:
+    void assign(size_type n, const T& val = T());
+    template<typename InputIterator>
+    void assign(InputIterator first, InputIterator last);
+
+private:
+    template<typename InputIterator>
+    void __assign_range_fill_dispatch(InputIterator first, InputIterator last, true_type);
+    template<typename InputIterator>
+    void __assign_range_fill_dispatch(InputIterator first, InputIterator last, false_type);
+
+    void __assign_fill_n(size_type n, const T &val);
+
+    template<typename InputIterator>
+    void __assign_range_dispatch(InputIterator first, InputIterator last, input_iterator_tag);
+    template<typename ForwardIterator>
+    void __assign_range_dispatch(ForwardIterator first, ForwardIterator last, forward_iterator_tag);
+
 
 public:
     void push_back(const T &val);
@@ -243,10 +266,17 @@ private:
     void __insert_without_enough_capacity(iterator pos, size_type n, const T &val);
 
     template<typename InputIterator>
-    void __insert_dispatch(iterator pos, InputIterator first, InputIterator last, input_iterator_tag);
+    void __insert_range_fill_dispatch(iterator pos, InputIterator first, InputIterator last, false_type);
+    template<typename InputIterator>
+    void __insert_range_fill_dispatch(iterator pos, InputIterator first, InputIterator last, true_type);
+
+    void __insert_fill_n(iterator pos, size_type n, const T &val);
+
+    template<typename InputIterator>
+    void __insert_range_dispatch(iterator pos, InputIterator first, InputIterator last, input_iterator_tag);
 
     template<typename ForwardIterator>
-    void __insert_dispatch(iterator pos, ForwardIterator first, ForwardIterator last, forward_iterator_tag);
+    void __insert_range_dispatch(iterator pos, ForwardIterator first, ForwardIterator last, forward_iterator_tag);
 
 
 public:
@@ -273,7 +303,31 @@ template<typename T, typename Allocator>
 inline vector<T, Allocator>::vector(size_type n, const T &val, const Allocator &allocator)
             : m_start(0), m_finish(0), m_end_of_storage(0), m_allocator(allocator)
 {
-    vector_construct_helper vc(n, allocator);
+    __vector_fill_n(n, val);
+}
+
+
+template<typename T, typename Allocator>
+template<typename InputIterator>
+inline vector<T, Allocator>::vector(InputIterator first, InputIterator last, const Allocator &allocator)
+            : m_start(0), m_finish(0), m_end_of_storage(0), m_allocator(allocator)
+{
+    __vector_range_fill_dispatch(first, last, typename  _type_traits<InputIterator>::is_integer());
+}
+
+
+template<typename T, typename Allocator>
+template<typename InputIterator>
+inline void vector<T, Allocator>::__vector_range_fill_dispatch(InputIterator first, InputIterator last, true_type)
+{
+    __vector_fill_n(first, last);
+}
+
+
+template<typename T, typename Allocator>
+void vector<T, Allocator>::__vector_fill_n(size_type n, const T &val)
+{
+    vector_construct_helper vc(n, m_allocator);
     vc.fill_n(n, val);
 
     m_start = vc.release();
@@ -284,16 +338,24 @@ inline vector<T, Allocator>::vector(size_type n, const T &val, const Allocator &
 
 template<typename T, typename Allocator>
 template<typename InputIterator>
-inline vector<T, Allocator>::vector(InputIterator first, InputIterator last, const Allocator &allocator)
-            : m_start(0), m_finish(0), m_end_of_storage(0), m_allocator(allocator)
+inline void vector<T, Allocator>::__vector_range_fill_dispatch(InputIterator first, InputIterator last, false_type)
 {
-    __vector_dispatch(first, last, iterator_category(first));
+    __vector_range(first, last);
+}
+
+
+
+template<typename T, typename Allocator>
+template<typename InputIterator>
+inline void vector<T, Allocator>::__vector_range(InputIterator first, InputIterator last)
+{
+    __vector_range_dispatch(first, last, iterator_category(first));
 }
 
 
 template<typename T, typename Allocator>
 template<typename InputIterator>
-void vector<T, Allocator>::__vector_dispatch(InputIterator first, InputIterator last, input_iterator_tag)
+void vector<T, Allocator>::__vector_range_dispatch(InputIterator first, InputIterator last, input_iterator_tag)
 {
     while(first != last)
     {
@@ -305,7 +367,7 @@ void vector<T, Allocator>::__vector_dispatch(InputIterator first, InputIterator 
 
 template<typename T, typename Allocator>
 template<typename ForwardIterator>
-inline void vector<T, Allocator>::__vector_dispatch(ForwardIterator first, ForwardIterator last, forward_iterator_tag)
+inline void vector<T, Allocator>::__vector_range_dispatch(ForwardIterator first, ForwardIterator last, forward_iterator_tag)
 {
     __vector_copy_n(first, last, size_type(stl::distance(first, last)));
 }
@@ -333,7 +395,7 @@ inline vector<T, Allocator>::vector(const vector &vec)
 
 
 template<typename T, typename Allocator>
-inline vector& vector<T, Allocator>::operator = (const vector &vec)
+inline vector<T, Allocator>& vector<T, Allocator>::operator = (const vector &vec)
 {
     if( this != &vec )
     {
@@ -379,7 +441,40 @@ void vector<T, Allocator>::clear()
 
 
 template<typename T, typename Allocator>
-void vector<T, Allocator>::assign(size_type n, const T& val)
+inline void vector<T, Allocator>::assign(size_type n, const T& val)
+{
+    __assign_fill_n(n, val);
+}
+
+
+
+template<typename T, typename Allocator>
+template<typename InputIterator>
+inline void vector<T, Allocator>::assign(InputIterator first, InputIterator last)
+{
+    __assign_range_fill_dispatch(first, last, typename  _type_traits<InputIterator>::is_integer());
+}
+
+
+
+template<typename T, typename Allocator>
+template<typename InputIterator>
+inline void vector<T, Allocator>::__assign_range_fill_dispatch(InputIterator first, InputIterator last, true_type)
+{
+    __assign_fill_n(first, last);
+}
+
+
+template<typename T, typename Allocator>
+template<typename InputIterator>
+void vector<T, Allocator>::__assign_range_fill_dispatch(InputIterator first, InputIterator last, false_type)
+{
+    __assign_range_dispatch(first, last, iterator_category(first));
+}
+
+
+template<typename T, typename Allocator>
+void vector<T, Allocator>::__assign_fill_n(size_type n, const T &val)
 {
     if( capacity() >= n)
     {
@@ -408,15 +503,7 @@ void vector<T, Allocator>::assign(size_type n, const T& val)
 
 template<typename T, typename Allocator>
 template<typename InputIterator>
-inline void vector<T, Allocator>::assign(InputIterator first, InputIterator last)
-{
-    __assign_dispatch(first, last, iterator_category(first));
-}
-
-
-template<typename T, typename Allocator>
-template<typename InputIterator>
-inline void vector<T, Allocator>::__assign_dispatch(InputIterator first, InputIterator last, input_iterator_tag)
+inline void vector<T, Allocator>::__assign_range_dispatch(InputIterator first, InputIterator last, input_iterator_tag)
 {
     clear();
 
@@ -431,7 +518,7 @@ inline void vector<T, Allocator>::__assign_dispatch(InputIterator first, InputIt
 
 template<typename T, typename Allocator>
 template<typename ForwardIterator>
-void vector<T, Allocator>::__assign_dispatch(ForwardIterator first, ForwardIterator last, forward_iterator_tag)
+void vector<T, Allocator>::__assign_range_dispatch(ForwardIterator first, ForwardIterator last, forward_iterator_tag)
 {
     size_type n = size_type(stl::distance(first, last));
 
@@ -459,7 +546,7 @@ void vector<T, Allocator>::__assign_dispatch(ForwardIterator first, ForwardItera
 
 
 template<typename T, typename Allocator>
-void vector<T, Allocator>::reverse(size_type n)
+void vector<T, Allocator>::reserve(size_type n)
 {
     if( n > capacity() )
     {
@@ -489,7 +576,7 @@ inline void vector<T, Allocator>::resize(size_type n, const T &val)
 template<typename T, typename Allocator>
 void vector<T, Allocator>::__resize_small(size_type n)
 {
-    iterator new_finish = begin() + size() - n;
+    iterator new_finish = begin() + n;
 
     try
     {
@@ -556,15 +643,23 @@ void vector<T, Allocator>::pop_back()
 }
 
 template<typename T, typename Allocator>
-vector<T, Allocator>::iterator vector<T, Allocator>::insert(iterator pos, const T &val)
+typename vector<T, Allocator>::iterator vector<T, Allocator>::insert(iterator pos, const T &val)
 {
     if( size() < capacity() )//有足够的空间
     {
-        m_allocator.construct(m_finish, back());
-        ++m_finish;
+        if(pos == end())
+        {
+            m_allocator.construct(m_finish, val);
+            ++m_finish;
+        }
+        else
+        {
+            m_allocator.construct(m_finish, back());
+            ++m_finish;
 
-        stl::copy_backward(pos, m_finish-2, m_finish-1);
-        *pos = val;
+            stl::copy_backward(pos, m_finish-2, m_finish-1);
+            *pos = val;
+        }
     }
     else
     {
@@ -600,7 +695,38 @@ void vector<T, Allocator>::__insert_without_enough_capacity(iterator pos, size_t
 
 
 template<typename T, typename Allocator>
-void vector<T, Allocator>::insert(iterator pos, size_type n, const T &val)
+inline void vector<T, Allocator>::insert(iterator pos, size_type n, const T &val)
+{
+    __insert_fill_n(pos, n, val);
+}
+
+
+template<typename T, typename Allocator>
+template<typename InputIterator>
+inline void vector<T, Allocator>::insert(iterator pos, InputIterator first, InputIterator last)
+{
+    __insert_range_fill_dispatch(pos, first, last, typename  _type_traits<InputIterator>::is_integer());
+}
+
+
+template<typename T, typename Allocator>
+template<typename InputIterator>
+inline void vector<T, Allocator>::__insert_range_fill_dispatch(iterator pos, InputIterator first, InputIterator last, false_type)
+{
+    __insert_range_dispatch(pos, first, last, iterator_category(first));
+}
+
+
+template<typename T, typename Allocator>
+template<typename InputIterator>
+inline void vector<T, Allocator>::__insert_range_fill_dispatch(iterator pos, InputIterator first, InputIterator last, true_type)
+{
+    __insert_fill_n(pos, first, last);
+}
+
+
+template<typename T, typename Allocator>
+void vector<T, Allocator>::__insert_fill_n(iterator pos, size_type n, const T &val)
 {
     if( size() + n > capacity() )//容量不够
     {
@@ -638,29 +764,23 @@ void vector<T, Allocator>::insert(iterator pos, size_type n, const T &val)
 }
 
 
-template<typename T, typename Allocator>
-template<typename InputIterator>
-inline void vector<T, Allocator>::insert(iterator pos, InputIterator first, InputIterator last)
-{
-    __insert_dispatch(pos, first, last, iterator_category(first));
-}
+
 
 
 template<typename T, typename Allocator>
 template<typename InputIterator>
-void vector<T, Allocator>::__insert_dispatch(iterator pos, InputIterator first, InputIterator last, input_iterator_tag)
+void vector<T, Allocator>::__insert_range_dispatch(iterator pos, InputIterator first, InputIterator last, input_iterator_tag)
 {
-    while(first != last)
+    for(; first != last; ++pos, ++first)
     {
-        pos = insert(pos, 1, *first);
-        ++pos;
+        pos = insert(pos, *first);
     }
 }
 
 
 template<typename T, typename Allocator>
 template<typename ForwardIterator>
-void vector<T, Allocator>::__insert_dispatch(iterator pos, ForwardIterator first, ForwardIterator last, forward_iterator_tag)
+void vector<T, Allocator>::__insert_range_dispatch(iterator pos, ForwardIterator first, ForwardIterator last, forward_iterator_tag)
 {
     size_type n = size_type(stl::distance(first, last));
 
@@ -716,7 +836,7 @@ void vector<T, Allocator>::__insert_dispatch(iterator pos, ForwardIterator first
 //==========================================================================
 
 template<typename T, typename Allocator>
-vector<T, Allocator>::iterator vector<T, Allocator>::erase(iterator pos)
+typename vector<T, Allocator>::iterator vector<T, Allocator>::erase(iterator pos)
 {
     if( pos >= end() )
         return pos;
@@ -743,7 +863,7 @@ vector<T, Allocator>::iterator vector<T, Allocator>::erase(iterator pos)
 
 
 template<typename T, typename Allocator>
-vector<T, Allocator>::iterator vector<T, Allocator>::erase(iterator first, iterator last)
+typename vector<T, Allocator>::iterator vector<T, Allocator>::erase(iterator first, iterator last)
 {
     if( last + 1 == end() )//包含最后一个元素，此时不应抛异常
     {
@@ -758,9 +878,9 @@ vector<T, Allocator>::iterator vector<T, Allocator>::erase(iterator first, itera
     }
     else
     {
+        iterator old_finish = m_finish;
         stl::copy(last, end(), first);
 
-        iterator old_finish = m_finish;
         m_finish -= last - first;
 
         stl::destroy(m_finish, old_finish);
@@ -772,28 +892,28 @@ vector<T, Allocator>::iterator vector<T, Allocator>::erase(iterator first, itera
 //================================non member function========================
 
 template<typename T, typename Allocator>
-inline bool operator == (const vector<T, Allocator> &lhs, const vector<T, allocator> &rhs)
+inline bool operator == (const vector<T, Allocator> &lhs, const vector<T, Allocator> &rhs)
 {
     return (lhs.size() == rhs.size()) && equal(lhs.begin(), lhs.end(), rhs.begin());
 }
 
 
 template<typename T, typename Allocator>
-inline bool operator != (const vector<T, Allocator> &lhs, const vector<T, allocator> &rhs)
+inline bool operator != (const vector<T, Allocator> &lhs, const vector<T, Allocator> &rhs)
 {
     return !(lhs == rhs);
 }
 
 
 template<typename T, typename Allocator>
-inline bool operator < (const vector<T, Allocator> &lhs, const vector<T, allocator> &rhs)
+inline bool operator < (const vector<T, Allocator> &lhs, const vector<T, Allocator> &rhs)
 {
     return lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
 }
 
 
 template<typename T, typename Allocator>
-inline bool operator > (const vector<T, Allocator> &lhs, const vector<T, allocator> &rhs)
+inline bool operator > (const vector<T, Allocator> &lhs, const vector<T, Allocator> &rhs)
 {
     return lexicographical_compare(rhs.begin(), rhs.end(), lhs.begin(), lhs.end());
 }
@@ -801,14 +921,14 @@ inline bool operator > (const vector<T, Allocator> &lhs, const vector<T, allocat
 
 
 template<typename T, typename Allocator>
-inline bool operator <= (const vector<T, Allocator> &lhs, const vector<T, allocator> &rhs)
+inline bool operator <= (const vector<T, Allocator> &lhs, const vector<T, Allocator> &rhs)
 {
     return !(rhs > lhs);
 }
 
 
 template<typename T, typename Allocator>
-inline bool operator >= (const vector<T, Allocator> &lhs, const vector<T, allocator> &rhs)
+inline bool operator >= (const vector<T, Allocator> &lhs, const vector<T, Allocator> &rhs)
 {
     return !(rhs < lhs);
 }

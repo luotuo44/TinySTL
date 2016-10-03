@@ -14,6 +14,8 @@
 #include"bits/stl_iterator_base.h"
 #include"bits/stl_iterator.h"
 
+#include"type_traits"
+
 #include"bits/stl_vector.h"
 
 #endif // VECTOR

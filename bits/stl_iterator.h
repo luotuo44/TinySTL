@@ -206,11 +206,7 @@ public:
     template<typename I>
     self& operator = (const reverse_iterator<I> &ri)
     {
-        if( this != &ri)
-        {
-            m_it = ri.base();
-        }
-
+        m_it = ri.base();
         return *this;
     }
 
