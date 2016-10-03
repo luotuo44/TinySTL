@@ -865,7 +865,7 @@ typename vector<T, Allocator>::iterator vector<T, Allocator>::erase(iterator pos
 template<typename T, typename Allocator>
 typename vector<T, Allocator>::iterator vector<T, Allocator>::erase(iterator first, iterator last)
 {
-    if( last + 1 == end() )//包含最后一个元素，此时不应抛异常
+    if( last == end() )//包含最后一个元素，此时不应抛异常
     {
         try
         {
