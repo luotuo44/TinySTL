@@ -22,7 +22,7 @@ inline void construct(T1 *p, const T2 &val)
 template<typename T>
 inline void destroy( T *p)
 {
-    p->~T();
+    if(p != 0) p->~T();
 }
 
 

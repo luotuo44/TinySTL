@@ -151,6 +151,23 @@ inline void advance(InputItertor &it, Distance n)
     __advance_dispatch(it, n, iterator_category(it));
 }
 
+
+template<typename ForwardIterator>
+inline ForwardIterator next(ForwardIterator it, typename iterator_traits<ForwardIterator>::difference_type n = 1)
+{
+    advance(it, n);
+    return it;
+}
+
+
+template<typename BidirectionalIterator>
+inline BidirectionalIterator prev(BidirectionalIterator it, typename iterator_traits<BidirectionalIterator>::difference_type n = 1)
+{
+    n = -n;
+    advace(it, n);
+    return it;
+}
+
 }
 
 

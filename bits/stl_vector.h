@@ -49,7 +49,7 @@ public:
         return m_cap;
     }
 
-    //故意不提供begin()接口，因为如果提高了begin()接口，可能会忘记调用release
+    //故意不提供begin()接口，因为如果提供了begin()接口，可能会忘记调用release
     iterator release()
     {
         iterator data = m_start;
