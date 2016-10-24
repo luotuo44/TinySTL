@@ -164,7 +164,7 @@ template<typename BidirectionalIterator>
 inline BidirectionalIterator prev(BidirectionalIterator it, typename iterator_traits<BidirectionalIterator>::difference_type n = 1)
 {
     n = -n;
-    advace(it, n);
+    advance(it, n);
     return it;
 }
 

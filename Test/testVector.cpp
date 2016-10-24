@@ -201,8 +201,8 @@ void testVectorBeginEndCase2()
     stl::vector<double>::const_reverse_iterator const_it = vec1.rbegin();
     const_it = vec1.rend();
     //测试const reverse itereator
-    //non_const_it = stl::vector<double>::crbegin();无法编译通过
-    //non_const_it = stl::vector<double>::crend();无法编译通过
+    //non_const_it = vec1.crbegin();无法编译通过
+    //non_const_it = vec1.crend();无法编译通过
 }
 
 

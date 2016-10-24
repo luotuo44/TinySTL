@@ -6,12 +6,11 @@
 
 
 
-
 namespace stl
 {
 
 template<typename T>
-struct __ListNode
+ struct __ListNode
 {
     __ListNode *prev;
     __ListNode *next;
@@ -20,10 +19,10 @@ struct __ListNode
 
 
 //__ListIteator其实就是__ListNode的指针，只是其类化了而已
-template<typename T, typename Ref, typename Ptr>
+template<typename T, typename Ref, typename Ptr, typename LinkNode>
 struct __ListIterstor
 {
-    typedef __ListIterstor<T, Ref, Ptr> self;
+    typedef __ListIterstor<T, Ref, Ptr, LinkNode> self;
 
     typedef T value_type;
     typedef Ptr pointer;
@@ -32,18 +31,22 @@ struct __ListIterstor
     typedef size_t size_type;
     typedef bidirectional_iterator_tag iterator_category;
 
-    typedef __ListNode<T>* link_type;
+    //typedef __ListNode<T>* link_type;
+    typedef LinkNode link_type;
 
     link_type m_node;//指向本iterator所指的list节点
 
 
     __ListIterstor(){}
     explicit __ListIterstor(link_type x) : m_node(x){}
-    __ListIterstor(const __ListIterstor &x) : m_node(x.m_node) {}
+
+    //用于确保一个non-const iterator可以初始化一个const iterator
+    template<typename U, typename URef, typename UPtr, typename ULinkNode>
+    __ListIterstor(const __ListIterstor<U, URef, UPtr, ULinkNode> &x) : m_node(x.m_node) {}
 
     //用于确保一个non-const iterator可以赋值给一个const iterator
-    template<typename U, typename URef, typename UPtr>
-    self& operator = (const __ListIterstor<U, URef, UPtr> &x)
+    template<typename U, typename URef, typename UPtr, typename ULinkNode>
+    self& operator = (const __ListIterstor<U, URef, UPtr, ULinkNode> &x)
     {
         m_node = x.m_node;
         return *this;
@@ -118,7 +121,7 @@ public:
     __list_construct_helper()
         : m_head(0), m_tail(0)
     {
-        m_head = m_tail = allocateNode();
+        m_head = m_tail = allocateNodeAndInit(T());
     }
 
     //只会复制到最后
@@ -146,8 +149,10 @@ public:
         node->prev = m_tail->prev;
         m_tail->prev = node;
 
-        if( node->prev )
+        if( node->prev )//有前驱节点，说明m_head和m_tail不是指向同一个节点
             node->prev->next = node;
+        else
+            m_head = node;
     }
 
     bool empty()const
@@ -162,8 +167,11 @@ public:
         stl::pair<LinkNode, LinkNode> p(0, 0);
         if(!empty())
         {
-            p = make_pair(m_head, m_tail->prev);
+            p = stl::make_pair(m_head, m_tail->prev);
             m_head = m_tail;//释放链表
+            m_tail->prev = 0;
+
+            p.first->prev = p.second->next = 0;
         }
 
         return p;
@@ -181,14 +189,6 @@ public:
     }
 
 private:
-    LinkNode allocateNode()
-    {
-        LinkNode node = m_allocator.allocate(1);
-        node->next = node->prev = NULL;
-
-        return node;
-    }
-
     LinkNode allocateNodeAndInit(const T &val)
     {
         LinkNode node = m_allocator.allocate(1);
@@ -237,9 +237,10 @@ class list
 {
 private:
     typedef __ListNode<T>* LinkNode;
+    typedef const __ListNode<T>* ConstLinkNode;
     typedef __ListNode<T> ListNode;
     typedef typename Allocator::template rebind<ListNode>::other AllocatorType;
-    typedef __list_construct_helper<T, Allocator> list_construct_helper;
+    typedef __list_construct_helper<T, AllocatorType> list_construct_helper;
 
 public:
     typedef T  value_type;
@@ -251,8 +252,8 @@ public:
     typedef ptrdiff_t difference_type;
     typedef Allocator allocator_type;
 
-    typedef __ListIterstor<T, T&, T*> iterator;
-    typedef __ListIterstor<T, const T&, const T*> const_iterator;
+    typedef __ListIterstor<T, T&, T*, LinkNode> iterator;
+    typedef __ListIterstor<T, const T&, const T*, ConstLinkNode> const_iterator;
     typedef stl::reverse_iterator<iterator> reverse_iterator;
     typedef stl::reverse_iterator<const_iterator> const_reverse_iterator;
 
@@ -276,10 +277,11 @@ public:
 
     bool empty()const { return begin() == end(); }
     size_type max_size()const { return size_type(-1)/sizeof(T); }
+    size_type size()const { return stl::distance(begin(), end()); }
     reference front() { return *begin(); }
     const_reference front()const { return *begin(); }
-    reference back() { return m_tail->prev->data; }
-    const_reference back()const { return m_tail->prev->data; }
+    reference back() { return *stl::prev(end()); }
+    const_reference back()const { return *stl::prev(end()); }
     Allocator get_allocator()const { return Allocator(); }
 
 
@@ -296,7 +298,6 @@ public:
     void swap(list &l);
     void clear();
     void resize(size_t n, const T &val = T());
-    size_type size()const;
 
 private:
     template<typename InputIterator>
@@ -340,8 +341,8 @@ private:
     void __insert_range(iterator pos, InputIterator first, InputIterator last);
 
 public:
-    void erase(iterator pos);
-    void erase(iterator first, iterator last);
+    iterator erase(iterator pos);
+    iterator erase(iterator first, iterator last);
 
 
 public:
@@ -368,7 +369,6 @@ public:
     void sort(StrictWeakOrdering comp);
 
 private:
-    LinkNode allocateNode();
     LinkNode allocateNodeAndInit(const T &val);
     void initBlankNode();
 
@@ -379,16 +379,6 @@ private:
     LinkNode m_tail;
     AllocatorType m_allocator;
 };
-
-
-template<typename T, typename Allocator>
-inline typename list<T, Allocator>::LinkNode list<T, Allocator>::allocateNode()
-{
-    LinkNode node = m_allocator.allocate(1);
-    node->next = node->prev = NULL;
-
-    return node;
-}
 
 
 template<typename T, typename Allocator>
@@ -414,7 +404,7 @@ typename list<T, Allocator>::LinkNode list<T, Allocator>::allocateNodeAndInit(co
 template<typename T, typename Allocator>
 inline void list<T, Allocator>::initBlankNode()
 {
-    m_head = m_tail = allocateNode();//指向一个空白 Node
+    m_head = m_tail = allocateNodeAndInit(T());//指向一个空白 Node
 }
 
 
@@ -535,7 +525,7 @@ void list<T, Allocator>::resize(size_t n, const T &val)
 
     if( old_size < n)
     {
-        __insert_fill_n(end(), n, val);
+        __insert_fill_n(end(), n-old_size, val);
     }
     else
     {
@@ -547,21 +537,6 @@ void list<T, Allocator>::resize(size_t n, const T &val)
     }
 }
 
-
-
-template<typename T, typename Allocator>
-typename list<T, Allocator>::size_type list<T, Allocator>::size()const
-{
-    size_type n = 0;
-    LinkNode first = m_head;
-    while(first != m_tail)
-    {
-        ++n;
-        ++first;
-    }
-
-    return n;
-}
 
 
 template<typename T, typename Allocator>
@@ -636,7 +611,7 @@ template<typename T, typename Allocator>
 typename list<T, Allocator>::iterator list<T, Allocator>::insert(iterator pos, const T &val)
 {
     __insert_fill_n(pos, 1, val);
-    return iterator(pos.m_node.prev);
+    return iterator(pos.m_node->prev);
 }
 
 
@@ -721,12 +696,14 @@ void list<T, Allocator>::__insert_range(iterator pos, InputIterator first, Input
 
 
 template<typename T, typename Allocator>
-void list<T, Allocator>::erase(iterator pos)
+typename list<T, Allocator>::iterator list<T, Allocator>::erase(iterator pos)
 {
     if( pos == end() )
-        return ;
+        return pos;
 
     LinkNode pos_node = pos.m_node;
+    ++pos;
+
     if(pos_node == m_head)
         m_head = m_head->next;
 
@@ -736,16 +713,20 @@ void list<T, Allocator>::erase(iterator pos)
         pos_node->prev->next = pos_node->next;
 
     deleteNodeNoThrow(pos_node);
+
+    return pos;
 }
 
 
 template<typename T, typename Allocator>
-void list<T, Allocator>::erase(iterator first, iterator last)
+typename list<T, Allocator>::iterator list<T, Allocator>::erase(iterator first, iterator last)
 {
     while(first != last)
     {
         erase(first++);
     }
+
+    return last;
 }
 
 
@@ -766,7 +747,7 @@ void list<T, Allocator>::remove_if(UnaryPredicate pred)
     while(first != last)
     {
         iterator tmp = first++;
-        if(pred(tmp))
+        if(pred(*tmp))
             erase(tmp);
     }
 }
@@ -792,7 +773,7 @@ void list<T, Allocator>::unique(BinaryPredicate pred)
 
     while(second != last)
     {
-        if( pred(first, second) )
+        if( pred(*first, *second) )
         {
             iterator tmp = second++;
             erase(tmp);
@@ -859,6 +840,7 @@ void list<T, Allocator>::merge(list &x, StrictWeakOrdering comp)
 
         //跳到最后一个节点
         p = last2->prev;
+        last2->prev = 0;
     }
 
     //无论最终p是结束于this还是x，其最终都要指向this的tail所在链表
@@ -866,6 +848,7 @@ void list<T, Allocator>::merge(list &x, StrictWeakOrdering comp)
     first1->prev = p;
 
     x.m_head = x.m_tail;
+    x.m_tail->prev = 0;
 
     m_head = new_head.next;
     m_head->prev = 0;
@@ -981,7 +964,7 @@ inline void list<T, Allocator>::sort(StrictWeakOrdering comp)
 
     while( !empty() )
     {
-        carry.splice(begin(), *this, begin());
+        carry.splice(carry.begin(), *this, begin());
 
         int i = 0;
         while( i<fill && !counter[i].empty())
