@@ -16,6 +16,7 @@
 #include"Test/testFunction.h"
 #include"Test/testIterator.h"
 #include"Test/testVector.h"
+#include"Test/testList.h"
 
 using namespace std;
 
@@ -30,6 +31,7 @@ int main()
     stl::testFunction();
     stl::testItertor();
     stl::testVector();
+    stl::testList();
 
     cout << "Hello World!" << endl;
     return 0;
