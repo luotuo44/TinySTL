@@ -10,6 +10,7 @@
 #include"../iterator"
 #include"../type_traits"
 #include"stl_algobase.h"
+#include"stl_function.h"
 #include"utility"
 
 namespace stl
@@ -926,6 +927,50 @@ OutputIterator unique_copy(ForwardIterator first, ForwardIterator last, OutputIt
     return result;
 }
 
+
+template<typename ForwardIterator, typename Compare>
+ForwardIterator is_sorted_until(ForwardIterator first, ForwardIterator last, Compare comp)
+{
+    if(first == last)
+        return last;
+
+    ForwardIterator next = first;
+
+    for(++next; next != last; ++next)
+    {
+        if(comp(*next, *first))
+            return next;
+
+        //虽然++first也是可以，但++first可能没有直接赋值效率高
+        //对于复杂的迭代器，自增有时需要做比较多的操作才能跳到下一位置
+        //而赋值直接接受即可
+        first = next;
+    }
+
+    return last;
+}
+
+
+template<typename ForwardIterator>
+inline ForwardIterator is_sorted_until(ForwardIterator first, ForwardIterator last)
+{
+    typedef typename iterator_traits<ForwardIterator>::value_type value_type;
+    return is_sorted_until(first, last, stl::less<value_type>());
+}
+
+
+template<typename ForwardIterator>
+inline bool is_sorted(ForwardIterator first, ForwardIterator last)
+{
+    return is_sorted_until(first, last) == last;
+}
+
+
+template<typename ForwardIterator, typename Compare>
+inline bool is_sorted(ForwardIterator first, ForwardIterator last, Compare comp)
+{
+    return is_sorted_until(first, last, comp) == last;
+}
 
 }
 

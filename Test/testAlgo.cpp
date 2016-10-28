@@ -1113,6 +1113,50 @@ void testUniqueCopyCase2()
     assert(vec1 == vec2);
 }
 
+
+void testIsSortCase1()
+{
+    int a1[] = {1, 2, 3, 4, 5};
+    size_t n1 = sizeof(a1)/sizeof(a1[0]);
+
+    assert(stl::is_sorted_until(a1, a1, stl::less<int>()) == a1);
+    assert(stl::is_sorted_until(a1, a1+1, stl::less<int>()) == a1+1);
+    assert(stl::is_sorted_until(a1, a1+2, stl::less<int>()) == a1+2);
+    assert(stl::is_sorted_until(a1, a1+n1, stl::less<int>()) == a1+n1);
+
+    int a2[] = {1, 2, 2, 3, 4};
+    size_t n2 = sizeof(a2)/sizeof(a2[0]);
+    assert(stl::is_sorted_until(a2, a2+2, stl::less<int>()) == a2+2);
+    assert(stl::is_sorted_until(a2, a2+3, stl::less<int>()) == a2+3);
+    assert(stl::is_sorted_until(a2, a2+n2, stl::less<int>()) == a2+n2);
+
+
+    int a3[] = {1, 2, 3, 2, 4, 5};
+    size_t n3 = sizeof(a3)/sizeof(a3[0]);
+    assert(stl::is_sorted_until(a3, a3+2, stl::less<int>()) == a3+2);
+    assert(stl::is_sorted_until(a3, a3+3, stl::less<int>()) == a3+3);
+    assert(stl::is_sorted_until(a3, a3+4, stl::less<int>()) == a3+3);
+    assert(stl::is_sorted_until(a3, a3+n3, stl::less<int>()) == a3+3);
+}
+
+
+void testIsSortCase2()
+{
+    //内部调用is_sorted_until，所以只需简单测试是否编译通过即可
+    int a1[] = {1, 2, 3, 4, 5};
+    size_t n1 = sizeof(a1)/sizeof(a1[0]);
+
+    assert(stl::is_sorted(a1, a1+n1));
+    assert(stl::is_sorted(a1, a1+n1, stl::greater<int>()) == false);
+    assert(stl::is_sorted_until(a1, a1+n1) == a1+n1);
+
+    int a2[] = {1, 2, 3, 2, 1};
+    size_t n2 = sizeof(a2)/sizeof(a2[0]);
+    assert(stl::is_sorted(a2, a2+n2) == false);
+    assert(stl::is_sorted(a2, a2+n2, stl::less<int>()) == false);
+    assert(stl::is_sorted_until(a2, a2+n2) == a2+3);
+}
+
 //===================================================
 
 void testAlgo()
@@ -1196,6 +1240,10 @@ void testAlgo()
 
     testUniqueCopyCase1();
     testUniqueCopyCase2();
+
+
+    testIsSortCase1();
+    testIsSortCase2();
 }
 
 }
