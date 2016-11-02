@@ -19,6 +19,7 @@
 #include"../bits/stl_algo.h"
 #include"../iterator"
 #include"../type_traits"
+#include"../list"
 
 
 
@@ -1157,6 +1158,90 @@ void testIsSortCase2()
     assert(stl::is_sorted_until(a2, a2+n2) == a2+3);
 }
 
+
+//测试BidirectionalIterator
+void testSortCase1()
+{
+    int a1[] = {1, 2, 3, 4, 9, 8, 7, 6, 5};
+    size_t n1 = sizeof(a1)/sizeof(a1[0]);
+    stl::list<int> alist(a1, a1+n1);
+    stl::list<int> alist_cp(alist);
+
+    sort(alist.begin(), alist.end());
+    alist_cp.sort();
+    assert(alist == alist_cp);
+
+    sort(alist.begin(), alist.end());//对已排序的再次排序
+    assert(alist == alist_cp);
+
+    alist.reverse();
+    sort(alist.begin(), alist.end());//对倒序的进行排序
+    assert(alist == alist_cp);
+
+
+    int a2[] = {9, 8, 7, 6, 1, 2, 3, 4};
+    size_t n2 = sizeof(a2)/sizeof(a2[0]);
+    alist.assign(a2, a2+n2);
+    alist_cp = alist;
+
+    sort(alist.begin(), alist.end());
+    alist_cp.sort();
+    assert(alist == alist_cp);
+
+
+    //对序列中的部分元素进行排序
+    alist.assign(a2, a2+n2);
+    sort(alist.begin(), stl::next(alist.begin(), 4));
+    int a22[] = {6, 7, 8, 9, 1, 2, 3, 4};
+    assert(alist.size()==n2 && stl::equal(a22, a22+n2, alist.begin()));
+
+
+    int a3[] = {1, 3, 5, 7, 9, 2, 4, 6, 8};
+    size_t n3 = sizeof(a3)/sizeof(a3[0]);
+    alist.assign(a3, a3+n3);
+    alist_cp = alist;
+
+    sort(alist.begin(), alist.end());
+    alist_cp.sort();
+    assert(alist == alist_cp);
+
+
+    int a4[] = {2, 4, 6, 8, 1, 3, 5, 7, 9};
+    size_t n4 = sizeof(a4)/sizeof(a4[0]);
+    alist.assign(a4, a4+n4);
+    alist_cp = alist;
+
+    sort(alist.begin(), alist.end());
+    alist_cp.sort();
+    assert(alist == alist_cp);
+
+
+    //边界情况
+    alist.clear();
+    alist.push_back(2);
+    sort(alist.begin(), alist.end());
+    assert(alist.size()==1 && alist.back()==2);
+
+    alist.push_back(1);
+    sort(alist.begin(), alist.end());
+    assert(alist.size()==2 && alist.front()==1 && alist.back()==2);
+
+    alist.clear();
+    alist.push_back(1);
+    alist.push_back(2);
+    sort(alist.begin(), alist.end());
+    assert(alist.size()==2 && alist.front()==1 && alist.back()==2);
+
+
+    //测试自定义的比较函数
+    alist.assign(a1, a1+n1);
+    alist_cp = alist;
+
+    sort(alist.begin(), alist.end(), stl::greater<int>());
+    alist_cp.sort();
+    assert(alist.size()==n1 && stl::equal(alist.rbegin(), alist.rend(), alist_cp.begin()));
+}
+
 //===================================================
 
 void testAlgo()
@@ -1244,6 +1329,9 @@ void testAlgo()
 
     testIsSortCase1();
     testIsSortCase2();
+
+
+    testSortCase1();
 }
 
 }

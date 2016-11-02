@@ -972,6 +972,79 @@ inline bool is_sorted(ForwardIterator first, ForwardIterator last, Compare comp)
     return is_sorted_until(first, last, comp) == last;
 }
 
+
+template<typename BidirectionalIterator, typename Compare>
+void __sort_bidirectional_iterator(BidirectionalIterator begin, BidirectionalIterator end, Compare comp)
+{
+    if( begin == end )
+        return ;
+
+    BidirectionalIterator first = begin;
+    BidirectionalIterator last = end;
+    typename stl::iterator_traits<BidirectionalIterator>::value_type k = *first;
+
+    while(first != last)
+    {
+        for(--last; first != last; --last)
+        {
+            if(comp(*last, k))
+                break;
+        }
+        *first = *last;
+
+        for(; first != last; ++first)
+        {
+            if(comp(k, *first))
+                break;
+        }
+        *last = *first;
+    }
+    *first = k;
+
+    if(first == begin)
+    {
+        __sort_bidirectional_iterator(++first, end, comp);
+    }
+    else if( ++last == end)
+    {
+        __sort_bidirectional_iterator(begin, first, comp);
+    }
+    else
+    {
+        __sort_bidirectional_iterator(begin, first, comp);
+        __sort_bidirectional_iterator(++first, end, comp);
+    }
+}
+
+
+template<typename BidirectionalIterator, typename Compare>
+inline void __sort(BidirectionalIterator begin, BidirectionalIterator end, Compare comp, bidirectional_iterator_tag)
+{
+    __sort_bidirectional_iterator(begin, end, comp);
+}
+
+
+template<typename RandomIterator, typename Compare>
+void __sort(RandomIterator begin, RandomIterator end, Compare comp, random_access_iterator_tag)
+{
+
+}
+
+
+template<typename Iterator, typename Compare>
+inline void sort(Iterator begin, Iterator end, Compare comp)
+{
+    __sort(begin, end, comp, iterator_category(begin));
+}
+
+
+template<typename Iterator>
+inline void sort(Iterator begin, Iterator end)
+{
+    typedef typename iterator_traits<Iterator>::value_type value_type;
+    sort(begin, end, stl::less<value_type>());
+}
+
 }
 
 
