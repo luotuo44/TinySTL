@@ -227,6 +227,10 @@ private:
     }
 
 private:
+    __list_construct_helper(const __list_construct_helper &);
+    __list_construct_helper& operator = (const __list_construct_helper &);
+
+private:
     LinkNode m_head;
     LinkNode m_tail;
     Allocator m_allocator;

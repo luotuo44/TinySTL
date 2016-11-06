@@ -357,10 +357,19 @@ template<typename T, typename Allocator>
 template<typename InputIterator>
 void vector<T, Allocator>::__vector_range_dispatch(InputIterator first, InputIterator last, input_iterator_tag)
 {
-    while(first != last)
+    try
     {
-        insert(end(), *first);
-        ++first;
+        while(first != last)
+        {
+            insert(end(), *first);
+            ++first;
+        }
+    }
+    catch(...)
+    {
+        //一旦发生异常就释放之前已经构造的，确保是vector构造函数是strong guarantee
+        vector_destroy_helper(m_start, size(), capacity(), m_allocator);
+        throw;
     }
 }
 
