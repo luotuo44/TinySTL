@@ -823,7 +823,7 @@ void vector<T, Allocator>::__insert_range_dispatch(iterator pos, ForwardIterator
             stl::uninitialized_copy(first+backward_size, last, old_finish);
             m_finish += n - backward_size;
 
-            //上面和下面语句的调用顺序不要颠倒。这样可以保证在出现异常时也能处理合法状态
+            //上面和下面语句的调用顺序不要颠倒。这样可以保证在出现异常时也能处于合法状态
             //now, end() equals to pos + n
             stl::uninitialized_copy(pos, old_finish, pos+n);
             m_finish += backward_size;
