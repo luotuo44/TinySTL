@@ -516,7 +516,7 @@ OutputIterator merge(InputIterator1 first1, InputIterator1 last1, InputIterator2
             *result++ = *first1++;
     }
 
-    return copy(first1, last1, copy(first2, last2, result));
+    return stl::copy(first1, last1, stl::copy(first2, last2, result));
 }
 
 
@@ -532,7 +532,7 @@ OutputIterator merge(InputIterator1 first1, InputIterator1 last1, InputIterator2
             *result++ = *first1++;
     }
 
-    return copy(first1, last1, copy(first2, last2, result));
+    return stl::copy(first1, last1, stl::copy(first2, last2, result));
 }
 
 
@@ -555,7 +555,7 @@ BidireationalIterator partition(BidireationalIterator first, BidireationalIterat
         if(first == last)
             break;
 
-        swap(*first, *last);
+        stl::swap(*first, *last);
         ++first;
     }
 
@@ -675,21 +675,21 @@ template<typename BidirectionalIterator>
 void __reverse(BidirectionalIterator first, BidirectionalIterator last, bidirectional_iterator_tag)
 {
     while(first != last && first != --last)
-        swap(*first++, *last);
+        stl::swap(*first++, *last);
 }
 
 
 template<typename RandomIterator>
 void __reverse(RandomIterator first, RandomIterator last, random_access_iterator_tag)
 {
-    while( first < last ) swap(*first++, *--last);
+    while( first < last ) stl::swap(*first++, *--last);
 }
 
 
 template<typename BidirectionalIterator>
 inline void reverse(BidirectionalIterator first, BidirectionalIterator last)
 {
-    __reverse(first, last, iterator_category(first));
+    __reverse(first, last, stl::iterator_category(first));
 }
 
 
@@ -822,7 +822,7 @@ ForwardIterator search_n(ForwardIterator first, ForwardIterator last, Integer n,
 template<typename ForwardIterator1, typename ForwardIterator2>
 ForwardIterator2 swap_ranges(ForwardIterator1 first1, ForwardIterator1 last1, ForwardIterator2 first2)
 {
-    while(first1 != last1 ) swap(*first1++, *first2++);
+    while(first1 != last1 ) stl::swap(*first1++, *first2++);
 
     return first2;
 }
@@ -955,21 +955,21 @@ template<typename ForwardIterator>
 inline ForwardIterator is_sorted_until(ForwardIterator first, ForwardIterator last)
 {
     typedef typename iterator_traits<ForwardIterator>::value_type value_type;
-    return is_sorted_until(first, last, stl::less<value_type>());
+    return stl::is_sorted_until(first, last, stl::less<value_type>());
 }
 
 
 template<typename ForwardIterator>
 inline bool is_sorted(ForwardIterator first, ForwardIterator last)
 {
-    return is_sorted_until(first, last) == last;
+    return stl::is_sorted_until(first, last) == last;
 }
 
 
 template<typename ForwardIterator, typename Compare>
 inline bool is_sorted(ForwardIterator first, ForwardIterator last, Compare comp)
 {
-    return is_sorted_until(first, last, comp) == last;
+    return stl::is_sorted_until(first, last, comp) == last;
 }
 
 
@@ -1042,7 +1042,7 @@ template<typename Iterator>
 inline void sort(Iterator begin, Iterator end)
 {
     typedef typename iterator_traits<Iterator>::value_type value_type;
-    sort(begin, end, stl::less<value_type>());
+    stl::sort(begin, end, stl::less<value_type>());
 }
 
 }

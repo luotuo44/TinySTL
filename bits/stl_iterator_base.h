@@ -155,7 +155,7 @@ inline void advance(InputItertor &it, Distance n)
 template<typename ForwardIterator>
 inline ForwardIterator next(ForwardIterator it, typename iterator_traits<ForwardIterator>::difference_type n = 1)
 {
-    advance(it, n);
+    stl::advance(it, n);//需要加stl，不然当ForwardIterator为std命名空间的迭代器时，将无法正确匹配哪个advance
     return it;
 }
 
@@ -164,7 +164,7 @@ template<typename BidirectionalIterator>
 inline BidirectionalIterator prev(BidirectionalIterator it, typename iterator_traits<BidirectionalIterator>::difference_type n = 1)
 {
     n = -n;
-    advance(it, n);
+    stl::advance(it, n);//需要加stl，不然当ForwardIterator为std命名空间的迭代器时，将无法正确匹配哪个advance
     return it;
 }
 
