@@ -5,28 +5,21 @@
 #define STL_DEQUE
 
 
-
 namespace stl
 {
 
 template<typename T, typename Ref, typename Ptr, size_t BufferSize>
-class __DequeIterator
+struct __DequeIterator
 {
-
-    template<typename T, typename Allocator = stl::allocator<T>, size_t BufferSize = 64>
-    friend class deque;
-
-public:
     typedef T value_type;
     typedef Ptr pointer;
     typedef Ref reference;
     typedef size_t size_type;
     typedef ptrdiff_t difference_type;
     typedef random_access_iterator_tag iterator_category;
-    typedef pointer* map_pointer;
+    typedef T** map_pointer;
     typedef __DequeIterator self;
 
-public:
     __DequeIterator()
         : m_cur(0), m_first(0), m_last(0), m_node(0)
     {
@@ -43,7 +36,7 @@ public:
         : m_cur(x.m_cur), m_first(x.m_first), m_last(x.m_last), m_node(x.m_node)
     {
         //编译期判别Buffsize 和 UBufferSize是否相等
-        int tmp[(Buffsize == UBufferSize)? 1 : -1];
+        int tmp[(BufferSize == UBufferSize)? 1 : -1];
         (void)tmp;//避免未使用警告
     }
 
@@ -57,7 +50,7 @@ public:
         m_node = x.m_node;
 
         //编译期判别Buffsize 和 UBufferSize是否相等
-        int tmp[(Buffsize == UBufferSize)? 1 : -1];
+        int tmp[(BufferSize == UBufferSize)? 1 : -1];
         (void)tmp;//避免未使用警告
     }
 
@@ -69,9 +62,6 @@ public:
         stl::swap(m_first, x.m_first);
         stl::swap(m_last, x.m_last);
     }
-
-
-
 
 
     reference operator * ()const { return *m_cur; }
@@ -130,7 +120,7 @@ public:
         if( offset >= 0 )
         {
             if(offset < difference_type(BufferSize) )//在同一个buffer里
-                cur += n;
+                m_cur += n;
             else
             {
                 //前进node_offset个node的位置
@@ -185,7 +175,6 @@ public:
     }
 
 
-private:
     void set_node(map_pointer node)
     {
         m_node = node;
@@ -193,7 +182,6 @@ private:
         m_last = m_first + static_cast<difference_type>(BufferSize);
     }
 
-private:
     pointer m_cur;
     pointer m_first;
     pointer m_last;
@@ -225,7 +213,7 @@ public:
     }
 
     //offset是指m_start不再指向数组的开始，而是加上一个偏移量。这一般是用于第一个buffer
-    void allocateWithOffset(size_type offset, const stl::Allocator &allocator)
+    void allocateWithOffset(size_type offset, const Allocator &allocator)
     {
         m_allocator = allocator;
         m_data = m_allocator.allocate(SIZE);
@@ -264,11 +252,15 @@ public:
         pointer data;
         pointer start;
         pointer finish;
+
+        tuple()
+            : data(0), start(0), finish(0)
+        {}
     };
 
     struct tuple release()
     {
-        struct tuple tp(0, 0, 0);
+        struct tuple tp;
         tp.data = m_data;
         tp.start = m_start;
         tp.finish = m_finish;
@@ -347,7 +339,7 @@ public:
     typedef pointer* map_pointer;
 
     typedef Allocator allocator_type;
-    typedef __deque_buffer_construct_helper<T, Allocator, BufferSize> buffer_construct_helper;
+    typedef __deque_buffer_construct_helper<T, Allocator, SIZE> buffer_construct_helper;
     typedef typename __deque_buffer_construct_helper<T, Allocator, SIZE>::tuple tuple;
 
 public:
@@ -474,11 +466,9 @@ public:
     typedef ptrdiff_t difference_type;
 
     typedef __DequeIterator<T, T&, T*, BufferSize> iterator;
-    typedef __DequeIterator<const T, const T&, const T*, BufferSize> const_iterator;
+    typedef __DequeIterator<T, const T&, const T*, BufferSize> const_iterator;
     typedef stl::reverse_iterator<iterator> reverse_iterator;
     typedef stl::reverse_iterator<const_iterator> const_reverse_iterator;
-    friend class iterator;
-    friend class const_iterator;
 
     typedef Allocator allocator_type;
 
@@ -490,7 +480,7 @@ public:
 private:
     typedef pointer* map_pointer;
     //Allocator是用于分配缓冲区，而map_allocator则用于分配map
-    typedef typename Allocator::template rebind<map_pointer>::other map_allocator;
+    typedef typename Allocator::template rebind<pointer>::other map_allocator;
 
 public:
     iterator begin() { return m_start; }
@@ -598,8 +588,8 @@ private:
     template<typename ForwardIterator1, typename ForwardIterator2>
     void __insert_at_back(size_type n, ForwardIterator1 first, const ForwardIterator2 &last);
 
-    template<typename T, typename Allocator, size_t BufferSize>
-    void __insert_at_mid(iterator pos, size_type n, const T &val);
+    template<typename ForwardIterator1, typename ForwardIterator2>
+    void __insert_at_mid(iterator pos, size_type n, ForwardIterator1 first, const ForwardIterator2 &last);
 
     void __insert_fill_n(iterator pos, size_type n, const T &val);
 
@@ -627,7 +617,7 @@ private:
     map_allocator m_map_allocator;
 
 private:
-    size_t s_min_map_size;
+    static size_t s_min_map_size;
 };
 
 
@@ -651,8 +641,8 @@ inline deque<T, Allocator, BufferSize>::deque(size_type n, const T &val, const A
 }
 
 
-template<typename InputIterator>
 template<typename T, typename Allocator, size_t BufferSize>
+template<typename InputIterator>
 inline deque<T, Allocator, BufferSize>::deque(InputIterator first, InputIterator last, const Allocator &allocator)
     : m_map(0), m_map_size(0), m_allocator(allocator)
 {
@@ -661,8 +651,8 @@ inline deque<T, Allocator, BufferSize>::deque(InputIterator first, InputIterator
 
 
 
-template<typename InputIterator>
 template<typename T, typename Allocator, size_t BufferSize>
+template<typename InputIterator>
 inline void deque<T, Allocator, BufferSize>::__deque_range_fill_dispatch(InputIterator first, InputIterator last, true_type)
 {
     __deque_fill_n(first, last);
@@ -670,16 +660,16 @@ inline void deque<T, Allocator, BufferSize>::__deque_range_fill_dispatch(InputIt
 
 
 
-template<typename InputIterator>
 template<typename T, typename Allocator, size_t BufferSize>
+template<typename InputIterator>
 inline void deque<T, Allocator, BufferSize>::__deque_range_fill_dispatch(InputIterator first, InputIterator last, false_type)
 {
     __deque_range_dispatch(first, last, iterator_category(first));
 }
 
 
-template<typename InputIterator>
 template<typename T, typename Allocator, size_t BufferSize>
+template<typename InputIterator>
 void deque<T, Allocator, BufferSize>::__deque_range_dispatch(InputIterator first, InputIterator last, input_iterator_tag)
 {
     __deque_fill_n(0, T());//先构造出map结构
@@ -702,8 +692,8 @@ void deque<T, Allocator, BufferSize>::__deque_range_dispatch(InputIterator first
 }
 
 
-template<typename ForwardIterator>
 template<typename T, typename Allocator, size_t BufferSize>
+template<typename ForwardIterator>
 void deque<T, Allocator, BufferSize>::__deque_range_dispatch(ForwardIterator first, ForwardIterator last, forward_iterator_tag)
 {
     difference_type element_num = stl::distance(first, last);
@@ -727,7 +717,7 @@ void deque<T, Allocator, BufferSize>::__deque_range_dispatch(ForwardIterator fir
     size_t map_start_index = (m_map_size-node_num)/2;
     for(size_type i = 0; i < node_num; ++i)
     {
-        deque_buffer_construct_helper::tuple tp = d2b.release(i);
+        typename deque_buffer_construct_helper::tuple tp = d2b.release(i);
         m_map[map_start_index+i] = tp.data;
     }
 
@@ -761,14 +751,14 @@ void deque<T, Allocator, BufferSize>:: __deque_fill_n(size_type n, const T &val)
     size_t map_start_index = (m_map_size-node_num)/2;
     for(size_type i = 0; i < node_num; ++i)
     {
-        deque_buffer_construct_helper::tuple tp = d2d.release(i);
+        typename deque_buffer_construct_helper::tuple tp = d2d.release(i);
         m_map[map_start_index+i] = tp.data;
     }
 
     m_start.set_node(m_map + map_start_index);
-    m_start.cur = m_start.first;
+    m_start.m_cur = m_start.m_first;
     m_finish.set_node(m_map + map_start_index + node_num - 1);
-    m_finish.cur = m_finish.first + n%BufferSize;
+    m_finish.m_cur = m_finish.m_first + n%BufferSize;
 }
 
 
@@ -782,7 +772,7 @@ inline deque<T, Allocator, BufferSize>::deque(const deque &de)
 
 
 template<typename T, typename Allocator, size_t BufferSize>
-deque& deque<T, Allocator, BufferSize>::operator = (const deque &de)
+deque<T, Allocator, BufferSize>& deque<T, Allocator, BufferSize>::operator = (const deque &de)
 {
     if( this != &de )
     {
@@ -932,7 +922,7 @@ void deque<T, Allocator, BufferSize>::__assign_fill_n(size_type n, const T &val)
     size_t map_start_index = (m_map_size-node_num)/2;
     for(size_type i = 0; i < node_num; ++i)
     {
-        deque_buffer_construct_helper::tuple tp = d2d.release(i);
+        typename deque_buffer_construct_helper::tuple tp = d2d.release(i);
         m_map[map_start_index+i] = tp.data;
     }
 
@@ -1009,7 +999,7 @@ void deque<T, Allocator, BufferSize>::__assign_range_dispatch(ForwardIterator fi
     size_t map_start_index = (m_map_size-node_num)/2;
     for(size_type i = 0; i < node_num; ++i)
     {
-        deque_buffer_construct_helper::tuple tp = d2b.release(i);
+        typename deque_buffer_construct_helper::tuple tp = d2b.release(i);
         m_map[map_start_index+i] = tp.data;
     }
 
@@ -1050,7 +1040,7 @@ void deque<T, Allocator, BufferSize>::__push_back_aux(const T &val)
     m_allocator.construct(m_finish.m_cur, val);
 
 
-    deque_buffer_construct_helper::tuple tp = db.release();
+    typename deque_buffer_construct_helper::tuple tp = db.release();
     map_pointer new_node = m_finish.m_node + 1;
     *new_node = tp.data;
 
@@ -1134,7 +1124,7 @@ void deque<T, Allocator, BufferSize>::__push_front_aux(const T &val)
     db.fill_n(1, val);
 
 
-    deque_buffer_construct_helper::tuple tp = db.release();
+    typename deque_buffer_construct_helper::tuple tp = db.release();
     map_pointer new_node = m_start.m_node - 1;
     *new_node = tp.data;
 
@@ -1215,7 +1205,7 @@ void deque<T, Allocator, BufferSize>::pop_front()
 
 
 template<typename T, typename Allocator, size_t BufferSize>
-deque<T, Allocator, BufferSize>::iterator deque<T, Allocator, BufferSize>::insert(iterator pos, const T &val)
+typename deque<T, Allocator, BufferSize>::iterator deque<T, Allocator, BufferSize>::insert(iterator pos, const T &val)
 {
     if(pos == begin())
     {
@@ -1259,8 +1249,8 @@ inline void deque<T, Allocator, BufferSize>::insert(iterator pos, size_type n, c
 }
 
 
-template<typename ForwardIterator1, typename ForwardIterator2>
 template<typename T, typename Allocator, size_t BufferSize>
+template<typename ForwardIterator1, typename ForwardIterator2>
 void deque<T, Allocator, BufferSize>::__insert_at_mid(iterator pos, size_type n, ForwardIterator1 first, const ForwardIterator2 &last)
 {
     difference_type elements_before = pos - begin();
@@ -1341,8 +1331,8 @@ void deque<T, Allocator, BufferSize>::__insert_at_mid(iterator pos, size_type n,
 }
 
 
-template<typename ForwardIterator1, typename ForwardIterator2>
 template<typename T, typename Allocator, size_t BufferSize>
+template<typename ForwardIterator1, typename ForwardIterator2>
 void deque<T, Allocator, BufferSize>::__insert_at_front(size_type n, ForwardIterator1 first, const ForwardIterator2 &last)
 {
     difference_type cur_buffer_reserve_num = m_start.m_cur - m_start.m_first;
@@ -1387,7 +1377,7 @@ void deque<T, Allocator, BufferSize>::__insert_at_front(size_type n, ForwardIter
         map_pointer new_node = m_start.m_node - need_nodes;
         for(size_type i = 0; i < need_nodes; ++i)
         {
-            deque_buffer_construct_helper::tuple tp = d2b.release(i);
+            typename deque_buffer_construct_helper::tuple tp = d2b.release(i);
             *new_node++ = tp.data;
         }
 
@@ -1397,8 +1387,8 @@ void deque<T, Allocator, BufferSize>::__insert_at_front(size_type n, ForwardIter
 }
 
 
-template<typename ForwardIterator1, typename ForwardIterator2>
 template<typename T, typename Allocator, size_t BufferSize>
+template<typename ForwardIterator1, typename ForwardIterator2>
 void deque<T, Allocator, BufferSize>::__insert_at_back(size_type n, ForwardIterator1 first, const ForwardIterator2 &last)//insert_fill
 {
     difference_type cur_buffer_reserve_num = m_finish.m_last - m_finish.m_cur;
@@ -1446,7 +1436,7 @@ void deque<T, Allocator, BufferSize>::__insert_at_back(size_type n, ForwardItera
         map_pointer new_node = m_finish.m_node + 1;
         for(size_type i = 0; i < need_nodes; ++i)
         {
-            deque_buffer_construct_helper::tuple tp = d2b.release(i);
+            typename deque_buffer_construct_helper::tuple tp = d2b.release(i);
             *new_node++ = tp.data;
         }
 
@@ -1474,8 +1464,8 @@ void deque<T, Allocator, BufferSize>::__insert_fill_n(iterator pos, size_type n,
 }
 
 
-template<typename InputIterator>
 template<typename T, typename Allocator, size_t BufferSize>
+template<typename InputIterator>
 inline void deque<T, Allocator, BufferSize>::insert(iterator pos, InputIterator first, InputIterator last)
 {
     __insert_range_fill_dispatch(pos, first, last, _type_traits<InputIterator>::is_integer());
@@ -1483,24 +1473,24 @@ inline void deque<T, Allocator, BufferSize>::insert(iterator pos, InputIterator 
 
 
 
-template<typename InputIterator>
 template<typename T, typename Allocator, size_t BufferSize>
+template<typename InputIterator>
 inline void deque<T, Allocator, BufferSize>::__insert_range_fill_dispatch(iterator pos, InputIterator first, InputIterator last, true_type)
 {
     __insert_fill_n(pos, first, last);
 }
 
 
-template<typename InputIterator>
 template<typename T, typename Allocator, size_t BufferSize>
+template<typename InputIterator>
 inline void deque<T, Allocator, BufferSize>::__insert_range_fill_dispatch(iterator pos, InputIterator first, InputIterator last, false_type)
 {
     __insert_range_dispatch(pos, first, last, iterator_category(first));
 }
 
 
-template<typename InputIterator>
 template<typename T, typename Allocator, size_t BufferSize>
+template<typename InputIterator>
 void deque<T, Allocator, BufferSize>::__insert_range_dispatch(iterator pos, InputIterator first, InputIterator last, input_iterator_tag)
 {
     //无需捕抓异常
@@ -1511,8 +1501,8 @@ void deque<T, Allocator, BufferSize>::__insert_range_dispatch(iterator pos, Inpu
 }
 
 
-template<typename ForwardIterator>
 template<typename T, typename Allocator, size_t BufferSize>
+template<typename ForwardIterator>
 void deque<T, Allocator, BufferSize>::__insert_range_dispatch(iterator pos, ForwardIterator first, ForwardIterator last, forward_iterator_tag)
 {
     typename iterator_traits<ForwardIterator>::difference_type n = stl::distance(first, last);
@@ -1534,7 +1524,7 @@ void deque<T, Allocator, BufferSize>::__insert_range_dispatch(iterator pos, Forw
 
 
 template<typename T, typename Allocator, size_t BufferSize>
-deque<T, Allocator, BufferSize>::iterator deque<T, Allocator, BufferSize>::erase(iterator pos)
+typename deque<T, Allocator, BufferSize>::iterator deque<T, Allocator, BufferSize>::erase(iterator pos)
 {
     if( pos == end() )
         return pos;
@@ -1560,7 +1550,7 @@ deque<T, Allocator, BufferSize>::iterator deque<T, Allocator, BufferSize>::erase
 
 
 template<typename T, typename Allocator, size_t BufferSize>
-deque<T, Allocator, BufferSize>::iterator deque<T, Allocator, BufferSize>::erase(iterator first, iterator last)
+typename deque<T, Allocator, BufferSize>::iterator deque<T, Allocator, BufferSize>::erase(iterator first, iterator last)
 {
     //erase有异常安全要求。本函数实现时，destroy和deallocate都不会抛异常，而copy或者copy_backward则可能抛异常
 
@@ -1574,7 +1564,7 @@ deque<T, Allocator, BufferSize>::iterator deque<T, Allocator, BufferSize>::erase
         difference_type num = last - first;
         difference_type elements_before = first - m_start;//清除区间前方的元素个数
 
-        if( elements_before < (size()-n)/2 )//前方的元素较少，此时需要向后覆盖
+        if( elements_before < (size()-num)/2 )//前方的元素较少，此时需要向后覆盖
         {
             stl::copy_backward(m_start, first, last);//如果m_start等于first,将不进行任何处理
 
