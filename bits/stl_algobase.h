@@ -215,8 +215,8 @@ inline T* __copy_t(const T *first, const T *last, T *result, true_type)
 }
 
 
-template<typename InputIterator, typename OutputIterator>
-inline OutputIterator __copy(InputIterator first, InputIterator last, OutputIterator result, random_access_iterator_tag)
+template<typename RandomAccessIterator, typename OutputIterator>
+inline OutputIterator __copy(RandomAccessIterator first, RandomAccessIterator last, OutputIterator result, random_access_iterator_tag)
 {
     return stl::__copy_aux(first, last, result, last-first);
 }
