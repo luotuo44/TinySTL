@@ -176,8 +176,8 @@ void testListBeginEndCase2()
     std::vector<double> vec1(d1, d1+n1);
 
     assert(vec1.size() == alist1.size());
-    stl::equal(alist1.rbegin(), alist1.rend(), vec1.rbegin());
-    stl::equal(alist1.crbegin(), alist1.crend(), vec1.rbegin());
+    assert(stl::equal(alist1.rbegin(), alist1.rend(), vec1.rbegin()));
+    assert(stl::equal(alist1.crbegin(), alist1.crend(), vec1.rbegin()));
 
     stl::list<double>::reverse_iterator non_const_it = alist1.rbegin();
     non_const_it = alist1.rend();

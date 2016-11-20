@@ -192,8 +192,8 @@ void testVectorBeginEndCase2()
     std::vector<double> vec2(d1, d1+n1);
 
     assert(vec1.size() == vec2.size());
-    stl::equal(vec1.rbegin(), vec1.rend(), vec2.rbegin());
-    stl::equal(vec1.crbegin(), vec1.crend(), vec2.rbegin());
+    assert(stl::equal(vec1.rbegin(), vec1.rend(), vec2.rbegin()));
+    assert(stl::equal(vec1.crbegin(), vec1.crend(), vec2.rbegin()));
 
     stl::vector<double>::reverse_iterator non_const_it = vec1.rbegin();
     non_const_it = vec1.rend();
