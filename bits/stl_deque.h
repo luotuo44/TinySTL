@@ -52,6 +52,8 @@ struct __DequeIterator
         //编译期判别Buffsize 和 UBufferSize是否相等
         int tmp[(BufferSize == UBufferSize)? 1 : -1];
         (void)tmp;//避免未使用警告
+
+        return *this;
     }
 
 
@@ -114,26 +116,20 @@ struct __DequeIterator
 
     self& operator += (difference_type n)
     {
-        //n可能为负数，offset用于判断移动后的位置是否和当前的在同一个buffer里面
-        difference_type offset = n + (m_cur - m_last);
+        difference_type offset = n + (m_cur - m_first);
 
-        if( offset >= 0 )
+        if( 0 <= offset && offset < static_cast<difference_type>(BufferSize) )//并未脱离当前buffer
+            m_cur += n;
+        else //在另外的node
         {
-            if(offset < difference_type(BufferSize) )//在同一个buffer里
-                m_cur += n;
-            else
+            difference_type node_offset = offset / BufferSize;
+            if( offset < 0 )
             {
-                //前进node_offset个node的位置
-                difference_type node_offset = offset / BufferSize;
-                set_node(m_node + node_offset);
-                m_cur = m_first + offset % BufferSize;
+                node_offset = -static_cast<difference_type>((-offset-1)/BufferSize) - 1;
             }
-        }
-        else //向后退
-        {
-            difference_type node_offset = (-offset-1)/BufferSize + 1;
-            set_node(m_node - node_offset);
-            m_node = m_first + (offset + node_offset*BufferSize);
+
+            set_node(m_node + node_offset);
+            m_cur = m_first + (offset - node_offset*BufferSize);
         }
 
         return *this;
@@ -243,7 +239,7 @@ public:
     template<typename InputIterator>
     InputIterator copy(InputIterator first, InputIterator last)
     {
-        return __copy_dispatch(first, last);
+        return __copy_dispatch(first, last, iterator_category(first));
     }
 
 
@@ -253,18 +249,11 @@ public:
         pointer start;
         pointer finish;
 
-        tuple()
-            : data(0), start(0), finish(0)
-        {}
     };
 
     struct tuple release()
     {
-        struct tuple tp;
-        tp.data = m_data;
-        tp.start = m_start;
-        tp.finish = m_finish;
-
+        struct tuple tp = {m_data, m_start, m_finish};
         m_finish = m_start = m_data = 0;
 
         return tp;
@@ -490,12 +479,12 @@ public:
     const_iterator cbegin()const { return m_start;  }
     const_iterator cend()const   { return m_finish; }
 
-    reverse_iterator rbegin() { return reverse_iterator(m_start);  }
-    reverse_iterator rend()   { return reverse_iterator(m_finish); }
-    const_reverse_iterator rbegin()const  { return const_reverse_iterator(m_start); }
-    const_reverse_iterator rend()const    { return const_reverse_iterator(m_finish);}
-    const_reverse_iterator crbegin()const { return const_reverse_iterator(m_start); }
-    const_reverse_iterator crend()const   { return const_reverse_iterator(m_finish);}
+    reverse_iterator rbegin() { return reverse_iterator(end());  }
+    reverse_iterator rend()   { return reverse_iterator(begin()); }
+    const_reverse_iterator rbegin()const  { return const_reverse_iterator(end()); }
+    const_reverse_iterator rend()const    { return const_reverse_iterator(begin());}
+    const_reverse_iterator crbegin()const { return const_reverse_iterator(end()); }
+    const_reverse_iterator crend()const   { return const_reverse_iterator(begin());}
 
 
     bool empty()const { return begin() == end(); }
@@ -507,6 +496,8 @@ public:
     const_reference back()const { return *stl::prev(end()); }
     allocator_type get_allocator()const { return m_allocator; }
 
+    reference operator [] (size_type n) { return *(begin()+n); }
+    const_reference operator [] (size_type n)const { return *(begin()+n); }
 
 public:
     explicit deque(const Allocator &allocator = Allocator());
@@ -581,15 +572,18 @@ public:
 
 
 private:
+    void __fill_at_front(size_type n, const T &val);
+    template<typename ForwardIterator>
+    void __insert_at_front(size_type n, ForwardIterator first, ForwardIterator last);
 
-    template<typename ForwardIterator1, typename ForwardIterator2>
-    void __insert_at_front(size_type n, ForwardIterator1 first, const ForwardIterator2 &last);
+    void __fill_at_back(size_type n, const T &val);
+    template<typename ForwardIterator>
+    void __insert_at_back(size_type n, ForwardIterator first, ForwardIterator last);
 
-    template<typename ForwardIterator1, typename ForwardIterator2>
-    void __insert_at_back(size_type n, ForwardIterator1 first, const ForwardIterator2 &last);
+    void __fill_at_mid(iterator pos, size_type n, const T &val);
+    template<typename ForwardIterator>
+    void __insert_at_mid(iterator pos, size_type n, ForwardIterator first, ForwardIterator last);
 
-    template<typename ForwardIterator1, typename ForwardIterator2>
-    void __insert_at_mid(iterator pos, size_type n, ForwardIterator1 first, const ForwardIterator2 &last);
 
     void __insert_fill_n(iterator pos, size_type n, const T &val);
 
@@ -796,21 +790,28 @@ void deque<T, Allocator, BufferSize>::__delete()
     map_pointer start_node = m_start.m_node;
     map_pointer finish_node = m_finish.m_node;
 
+    if( start_node == finish_node )//所有的数据都在一个buffer里
     {
-        //第一个buffer中的前几个元素可能并没有存有数据
-        deque_buffer_destroy_helper dd(m_start.m_first, m_start.m_cur, m_start.m_last, m_allocator);
+        deque_buffer_destroy_helper dd(m_start.m_first, m_start.m_cur, m_finish.m_cur, m_allocator);
     }
-
-    //上面已经处理的第一个buffer
-    for(++start_node; start_node < finish_node; ++start_node)
+    else
     {
-        //中间这些buffer必定是填满BufferSize个元素的
-        deque_buffer_destroy_helper dd(*start_node, *start_node, *start_node + BufferSize, m_allocator);
-    }
+        {
+            //第一个buffer中的前几个元素可能并没有存有数据
+            deque_buffer_destroy_helper dd(m_start.m_first, m_start.m_cur, m_start.m_last, m_allocator);
+        }
 
-    if(m_start.m_node != m_finish.m_node)//最后一个buffer也要额外处理
-    {
-        deque_buffer_destroy_helper dd(m_finish.m_first, m_finish.m_first, m_finish.m_cur, m_allocator);
+        //上面已经处理的第一个buffer
+        for(++start_node; start_node < finish_node; ++start_node)
+        {
+            //中间这些buffer必定是填满BufferSize个元素的
+            deque_buffer_destroy_helper dd(*start_node, *start_node, *start_node + BufferSize, m_allocator);
+        }
+
+        if(m_start.m_node != m_finish.m_node)//最后一个buffer也要额外处理
+        {
+            deque_buffer_destroy_helper dd(m_finish.m_first, m_finish.m_first, m_finish.m_cur, m_allocator);
+        }
     }
 
     try
@@ -837,38 +838,34 @@ void deque<T, Allocator, BufferSize>::swap(deque &x)
 template<typename T, typename Allocator, size_t BufferSize>
 void deque<T, Allocator, BufferSize>::clear()
 {
-    map_pointer reserve_node = m_start.m_node;
-
     map_pointer start_node = m_start.m_node;
-    map_pointer finish_node = m_finish.m_node;
 
+    pointer first_buffer_last = m_finish.m_cur;//假设只有一个buffer
 
+    if( start_node != m_finish.m_node )//不止一个buffer
+    {
+        first_buffer_last = m_start.m_last;
+
+        for(++start_node; start_node < m_finish.m_node; ++start_node)
+        {
+            deque_buffer_destroy_helper dd(*start_node, *start_node, *start_node+BufferSize, m_allocator);
+        }
+
+        //最后一个buffer需要特殊处理
+        deque_buffer_destroy_helper dd(m_finish.m_first, m_finish.m_first, m_finish.m_cur, m_allocator);
+    }
+
+    //删除第一个bufer的元素, 只删除元素，不释放buffer。
     try
     {
-        //第一个buffer中的前几个元素可能并没有存有数据
-        //保留第一个buffer
-        stl::destroy(m_start.m_cur, m_start.m_last);
+        stl::destroy(m_start.m_cur, first_buffer_last);
     }
     catch(...)
     {}
 
-    //上面已经处理的第一个buffer
-    for(++start_node; start_node < finish_node; ++start_node)
-    {
-        //中间这些buffer必定是填满BufferSize个元素的
-        deque_buffer_destroy_helper dd(*start_node, *start_node, *start_node + BufferSize, m_allocator);
-    }
-
-    if(m_start.m_node != m_finish.m_node)//最后一个buffer要额外处理
-    {
-        deque_buffer_destroy_helper dd(m_finish.m_first, m_finish.m_first, m_finish.m_cur, m_allocator);
-    }
-
-
-    m_start.set_node(reserve_node);
     m_start.m_cur = m_start.m_first;
-    m_finish.set_node(reserve_node);
-    m_finish.m_cur = m_start.m_first;
+    m_finish.set_node(m_start.m_node);
+    m_finish.m_cur = m_finish.m_first;
 }
 
 
@@ -927,9 +924,9 @@ void deque<T, Allocator, BufferSize>::__assign_fill_n(size_type n, const T &val)
     }
 
     m_start.set_node(m_map + map_start_index);
-    m_start.cur = m_start.first;
+    m_start.m_cur = m_start.m_first;
     m_finish.set_node(m_map + map_start_index + node_num - 1);
-    m_finish.cur = m_finish.first + n%BufferSize;
+    m_finish.m_cur = m_finish.m_first + n%BufferSize;
 }
 
 
@@ -1057,7 +1054,7 @@ void deque<T, Allocator, BufferSize>::__reserve_map_node_at_back(size_type nodes
         return ;
     else if( m_start.m_node > m_map+nodes_to_add-1 )//m_map数组前面有空闲的位置, 将数组内容向前移动，腾出空间
     {
-        stl::copy(m_start.m_node, m_finish.m_node+nodes_to_add, m_start.m_node - nodes_to_add);
+        stl::copy(m_start.m_node, m_finish.m_node+1, m_start.m_node-nodes_to_add);
 
         //只需调整m_start和m_finish的node指向，另外三个指向buffer的指针无需修改
         //因为其还是指向同一个buffer
@@ -1075,19 +1072,21 @@ void deque<T, Allocator, BufferSize>::__reserve_map_node_at_back(size_type nodes
 template<typename T, typename Allocator, size_t BufferSize>
 void deque<T, Allocator, BufferSize>::__expand_map_node(size_type nodes_to_add)
 {
+    size_t start_node_offset  = m_start.m_node - m_map;
+    size_t finish_node_offset = m_finish.m_node - m_map;
     size_t old_map_size = m_map_size;
     size_t new_map_size = old_map_size + 2*stl::max(old_map_size, nodes_to_add);
     map_pointer new_map = m_map_allocator.allocate(new_map_size);
 
-    size_t map_start_index = (new_map_size-m_map_size)/2;
-    stl::uninitialized_copy(m_map, m_map+m_map_size, new_map+map_start_index);
+    size_t map_start_index = (new_map_size-old_map_size)/2;
+    stl::uninitialized_copy(m_map, m_map+old_map_size, new_map+map_start_index);
 
 
     stl::swap(m_map, new_map);
     stl::swap(m_map_size, new_map_size);
 
-    m_start.m_node = m_map + map_start_index;
-    m_finish.m_node = m_map + map_start_index + old_map_size-1;
+    m_start.m_node = m_map + map_start_index + start_node_offset;
+    m_finish.m_node = m_map + map_start_index + finish_node_offset;
 
     m_map_allocator.deallocate(new_map, new_map_size);//释放旧的map 数组
 }
@@ -1140,7 +1139,7 @@ void deque<T, Allocator, BufferSize>::__reserve_map_node_at_front(size_type node
         return ;
     else if( m_finish.m_node < m_map + m_map_size-nodes_to_add )//m_map数组后面有空闲位置，数组内容向后移动，腾出空间
     {
-        stl::copy_backward(m_start.m_node, m_finish.m_node, m_finish.m_node+nodes_to_add);
+        stl::copy_backward(m_start.m_node, m_finish.m_node+1, m_finish.m_node+nodes_to_add+1);
 
         //只需调整m_start和m_finish的node指向，另外三个指向buffer的指针无需修改
         //因为其还是指向同一个buffer
@@ -1156,6 +1155,17 @@ void deque<T, Allocator, BufferSize>::__reserve_map_node_at_front(size_type node
 
 
 
+template<typename T, typename Allocator, size_t BufferSize>
+void deque<T, Allocator, BufferSize>::__destroyElementWithoutThrow(pointer p)
+{
+    try
+    {
+        m_allocator.destroy(p);
+    }
+    catch(...)//eat it
+    {}
+}
+
 
 template<typename T, typename Allocator, size_t BufferSize>
 void deque<T, Allocator, BufferSize>::pop_back()
@@ -1165,7 +1175,7 @@ void deque<T, Allocator, BufferSize>::pop_back()
 
     if( m_finish.m_cur != m_finish.m_first )//不是buffer的第一个元素
     {
-        --m_finish.m_cur;//必须先--，因为destroy可能会失败抛异常
+        --m_finish.m_cur;
         __destroyElementWithoutThrow(m_finish.m_cur);
     }
     else
@@ -1220,13 +1230,14 @@ typename deque<T, Allocator, BufferSize>::iterator deque<T, Allocator, BufferSiz
     else
     {
         difference_type elements_before = pos - begin();
-        if( elements_before < size()/2 )//插入点之前的元素比较少
+        if( static_cast<size_type>(elements_before) < size()/2 )//插入点之前的元素比较少
         {
             push_front(front());
 
             //push_front可能会使得pos失效，因此需要重新调整pos，使得其指向原先的位置
             pos = begin() + elements_before + 1;
             stl::copy(stl::next(begin(), 2), pos, stl::next(begin()));
+            --pos;
         }
         else
         {
@@ -1249,13 +1260,11 @@ inline void deque<T, Allocator, BufferSize>::insert(iterator pos, size_type n, c
 }
 
 
-template<typename T, typename Allocator, size_t BufferSize>
-template<typename ForwardIterator1, typename ForwardIterator2>
-void deque<T, Allocator, BufferSize>::__insert_at_mid(iterator pos, size_type n, ForwardIterator1 first, const ForwardIterator2 &last)
-{
-    difference_type elements_before = pos - begin();
-    typename _type_traits<ForwardIterator1>::is_integer bool_type;
 
+template<typename T, typename Allocator, size_t BufferSize>
+void deque<T, Allocator, BufferSize>::__fill_at_mid(iterator pos, size_type n, const T &val)
+{
+    size_type elements_before = pos - begin();
     if( elements_before <= size()/2 )//前面的元素较少，通过移动前面的元素完成插入
     {
         if( elements_before >= n )
@@ -1266,34 +1275,71 @@ void deque<T, Allocator, BufferSize>::__insert_at_mid(iterator pos, size_type n,
             pos = old_start + elements_before;
             iterator insert_start = stl::copy(old_start+n, pos, old_start);
 
-            if( bool_type )//fill
-                stl::fill_n(insert_start, n, last);
-            else
-                stl::copy(first, last, insert_start);
+            stl::fill_n(insert_start, n, val);
         }
         else
         {
             //此时将elements_before个元素向前移动，仍留有空白
             size_type blank_num = n - elements_before;
-            if( bool_type )//fill
-            {
-                __insert_at_front(blank_num, blank_num, last);
-                __insert_at_front(elements_before, m_start + blank_num, m_start+n);//将原先的元素copy到最前面
-                stl::fill_n(m_start+n, elements_before, last);
-            }
-            else
-            {
-                __insert_at_front(blank_num, first, last);
-                first += blank_num;
-
-                __insert_at_front(elements_before, m_start + blank_num, m_start+n);//将原先的元素copy到最前面
-                stl::copy(first, last, m_start+n);
-            }
+            __fill_at_front(blank_num, val);
+            __insert_at_front(elements_before, m_start+blank_num, m_start+n);
+            stl::fill_n(m_start+n, elements_before, val);
         }
     }
     else
     {
-        difference_type elements_after = end() - pos;
+        size_t elements_after = end() - pos;
+        if( elements_after >= n )
+        {
+            __insert_at_back(n, m_finish-n, m_finish);
+            iterator old_finish = m_finish - n;
+            pos = old_finish - elements_after;
+            stl::copy_backward(pos, old_finish-n, old_finish);
+            stl::fill_n(pos, n, val);
+        }
+        else
+        {
+            //此时将elements_after个元素向后移动，仍留有空白
+            size_type blank_num = n - elements_after;
+            __fill_at_back(blank_num, val);//先填空白
+            __insert_at_back(elements_after, m_finish-n, m_finish-blank_num);//将原来的元素copy到最后
+            stl::fill_n(m_finish-n-elements_after, elements_after, val);
+        }
+    }
+}
+
+
+template<typename T, typename Allocator, size_t BufferSize>
+template<typename ForwardIterator>
+void deque<T, Allocator, BufferSize>::__insert_at_mid(iterator pos, size_type n, ForwardIterator first, ForwardIterator last)
+{
+    size_type elements_before = pos - begin();
+    if( elements_before <= size()/2 )//前面的元素较少，通过移动前面的元素完成插入
+    {
+        if( elements_before >= n )
+        {
+            __insert_at_front(n, m_start, m_start+n);
+
+            iterator old_start = m_start + n;
+            pos = old_start + elements_before;
+            iterator insert_start = stl::copy(old_start+n, pos, old_start);
+
+            stl::copy(first, last, insert_start);
+        }
+        else
+        {
+            //此时将elements_before个元素向前移动，仍留有空白
+            size_type blank_num = n - elements_before;
+            __insert_at_front(blank_num, first, stl::next(first, blank_num));
+            first = stl::next(first, blank_num);
+
+            __insert_at_front(elements_before, m_start+blank_num, m_start+n);
+            stl::copy(first, last, m_start+n);
+        }
+    }
+    else
+    {
+        size_t elements_after = end() - pos;
 
         if( elements_after >= n )
         {
@@ -1302,76 +1348,50 @@ void deque<T, Allocator, BufferSize>::__insert_at_mid(iterator pos, size_type n,
             pos = old_finish - elements_after;
             stl::copy_backward(pos, old_finish-n, old_finish);
 
-            if(bool_type)//fill
-                stl::fill_n(pos, n, last);
-            else
-                stl::copy(first, last, pos);
+            stl::copy(first, last, pos);
         }
         else
         {
             //此时将elements_after个元素向后移动，仍留有空白
             size_type blank_num = n - elements_after;
-            if(bool_type)//fill
-            {
-                __insert_at_back(blank_num, blank_num, last);
-                __insert_at_back(elements_after, m_finish-n, m_finish-blank_num);//将原来的元素copy到最后
+            ForwardIterator mid_first = stl::next(first, elements_after);
+            __insert_at_back(blank_num, mid_first, last);//先填空白
+            __insert_at_back(elements_after, m_finish-n, m_finish-blank_num);//移动原来的元素到最后
 
-                stl::fill_n(m_finish-n-elements_after, elements_after, last);
-            }
-            else
-            {
-                __insert_at_back(blank_num, first, last);
-                first += blank_num;
-
-                __insert_at_back(elements_after, m_finish-n, m_finish-blank_num);//将原来的元素copy到最后
-                stl::copy(first, last, m_finish-n-elements_after);
-            }
+            stl::copy(first, mid_first, m_finish-n-elements_after);
         }
     }
 }
 
 
+
+
+
 template<typename T, typename Allocator, size_t BufferSize>
-template<typename ForwardIterator1, typename ForwardIterator2>
-void deque<T, Allocator, BufferSize>::__insert_at_front(size_type n, ForwardIterator1 first, const ForwardIterator2 &last)
+void deque<T, Allocator, BufferSize>::__fill_at_front(size_type n, const T &val)
 {
-    difference_type cur_buffer_reserve_num = m_start.m_cur - m_start.m_first;
-    typename _type_traits<ForwardIterator1>::is_integer bool_type;
+    size_type cur_buffer_reserve_num = m_start.m_cur - m_start.m_first;
 
     if( cur_buffer_reserve_num >= n)//第一个buffer有足够的空闲空间
     {
-        if( bool_type )//fill
-            stl::uninitialized_fill_n(m_start.m_cur - n, n, last);
-        else//range
-            stl::uninitialized_copy(first, last, m_start.m_cur-n);
-
+        stl::uninitialized_fill_n(m_start.m_cur-n, n, val);
         m_start.m_cur -= n;
     }
     else
     {
         difference_type elements_in_new_buffer = n - cur_buffer_reserve_num;
-        size_type need_nodes = (elements_in_new_buffer + 7)/BufferSize;
+        size_type need_nodes = (elements_in_new_buffer + BufferSize-1)/BufferSize;
         __reserve_map_node_at_front(need_nodes);
 
         size_type first_buffer_offset = elements_in_new_buffer%BufferSize;
-        first_buffer_offset = first_buffer_offset == 0 ? 0 : 8 - first_buffer_offset;
+        first_buffer_offset = first_buffer_offset == 0 ? 0 : BufferSize - first_buffer_offset;
 
         deque_2d_buffer_construct_helper d2b(need_nodes, first_buffer_offset, m_allocator);
+        for(size_type i = 0; i < need_nodes; ++i)
+            n -= d2b.fill_n(i, n, val);
 
-        if( bool_type )
-        {
-            for(size_type i = 0; i < need_nodes; ++i)
-                first -= d2b.fill_n(i, first, last);//now, first is n, last is val
+        stl::uninitialized_fill_n(m_start.m_first, n, val);
 
-            stl::uninitialized_fill_n(m_start.m_first, first, last);
-        }
-        else
-        {
-            for(size_type i = 0; i < need_nodes; ++i)
-                first = d2b.copy(i, first, last);
-
-            stl::uninitialized_copy(first, last, m_start.m_first);
-        }
 
         //以下操作不会抛异常
         map_pointer new_node = m_start.m_node - need_nodes;
@@ -1388,49 +1408,110 @@ void deque<T, Allocator, BufferSize>::__insert_at_front(size_type n, ForwardIter
 
 
 template<typename T, typename Allocator, size_t BufferSize>
-template<typename ForwardIterator1, typename ForwardIterator2>
-void deque<T, Allocator, BufferSize>::__insert_at_back(size_type n, ForwardIterator1 first, const ForwardIterator2 &last)//insert_fill
+template<typename ForwardIterator>
+void deque<T, Allocator, BufferSize>::__insert_at_front(size_type n, ForwardIterator first, ForwardIterator last)
 {
-    difference_type cur_buffer_reserve_num = m_finish.m_last - m_finish.m_cur;
-    difference_type elements_in_new_buffer = n - cur_buffer_reserve_num;
-    typename _type_traits<ForwardIterator1>::is_integer bool_type;
-
-    if( cur_buffer_reserve_num >= n)//最后一个buffer有足够的空闲空间
+    size_type cur_buffer_reserve_num = m_start.m_cur - m_start.m_first;
+    if( cur_buffer_reserve_num >= n)//第一个buffer有足够的空闲空间
     {
-        if( bool_type )
-            stl::uninitialized_fill_n(m_finish.m_cur, n, last);
-        else//range
-            stl::uninitialized_copy(first, last, m_finish.m_cur);
+        stl::uninitialized_copy(first, last, m_start.m_cur-n);
+        m_start.m_cur -= n;
+    }
+    else
+    {
+        difference_type elements_in_new_buffer = n - cur_buffer_reserve_num;
+        size_type need_nodes = (elements_in_new_buffer + BufferSize-1)/BufferSize;
+        __reserve_map_node_at_front(need_nodes);
 
+        size_type first_buffer_offset = elements_in_new_buffer%BufferSize;
+        first_buffer_offset = first_buffer_offset == 0 ? 0 : BufferSize - first_buffer_offset;
+
+        deque_2d_buffer_construct_helper d2b(need_nodes, first_buffer_offset, m_allocator);
+        for(size_type i = 0; i < need_nodes; ++i)
+            first = d2b.copy(i, first, last);
+
+        stl::uninitialized_copy(first, last, m_start.m_first);
+
+
+        //以下操作不会抛异常
+        map_pointer new_node = m_start.m_node - need_nodes;
+        for(size_type i = 0; i < need_nodes; ++i)
+        {
+            typename deque_buffer_construct_helper::tuple tp = d2b.release(i);
+            *new_node++ = tp.data;
+        }
+
+        m_start.set_node(m_start.m_node - need_nodes);
+        m_start.m_cur = m_start.m_first + first_buffer_offset;
+    }
+}
+
+
+template<typename T, typename Allocator, size_t BufferSize>
+void deque<T, Allocator, BufferSize>::__fill_at_back(size_type n, const T &val)
+{
+    size_type cur_buffer_reserve_num = m_finish.m_last - m_finish.m_cur;
+
+    if( cur_buffer_reserve_num > n)//最后一个buffer有足够的空闲空间
+    {
+        stl::uninitialized_fill_n(m_finish.m_cur, n, val);
         m_finish.m_cur += n;
     }
     else
     {
-        size_type need_nodes = (elements_in_new_buffer + 7)/BufferSize;
+        size_type elements_in_new_buffer = n - cur_buffer_reserve_num;
+        size_type need_nodes = elements_in_new_buffer/BufferSize + 1;
         __reserve_map_node_at_back(need_nodes);
 
+        n -= cur_buffer_reserve_num;
         deque_2d_buffer_construct_helper d2b(need_nodes, 0, m_allocator);
+        for(size_type i = 0; i < need_nodes; ++i)
+            n -= d2b.fill_n(i, n, val);
 
-        if( bool_type )
+        //先插入到新的buffer中，然后再m_finish指向的buffer，是因为uninitialized_fill_n
+        //抛异常后，d2b里面的值能释放。反之如果uninitialized_fill_n先执行，并且在向d2b插入
+        //值时抛异常，uninitialized_fill_n已经插入的将无法释放
+        stl::uninitialized_fill_n(m_finish.m_cur, cur_buffer_reserve_num, val);
+
+
+        //以下操作不会抛异常
+        map_pointer new_node = m_finish.m_node + 1;
+        for(size_type i = 0; i < need_nodes; ++i)
         {
-            first -= cur_buffer_reserve_num;
-            for(size_type i = 0; i < need_nodes; ++i)
-                first -= d2b.fill_n(i, first, last);//now, first is n, last is val
-
-            //先插入到新的buffer中，然后再m_finish指向的buffer，是因为uninitialized_fill_n
-            //抛异常后，d2b里面的值能释放。反之如果uninitialized_fill_n先执行，并且在向d2b插入
-            //值时抛异常，uninitialized_fill_n已经插入的将无法释放
-            stl::uninitialized_fill_n(m_finish.m_cur, cur_buffer_reserve_num, last);
+            typename deque_buffer_construct_helper::tuple tp = d2b.release(i);
+            *new_node++ = tp.data;
         }
-        else
-        {
-            ForwardIterator1 mid_last = stl::next(first, cur_buffer_reserve_num);
-            ForwardIterator1 mid_first = mid_last;
-            for(size_type i = 0; i < need_nodes; ++i)
-                mid_first = d2b.copy(i, mid_first, last);
 
-            stl::uninitialized_copy(first, mid_last, m_finish.m_cur);
-        }
+        m_finish.set_node(m_finish.m_node + need_nodes);
+        m_finish.m_cur = m_finish.m_first + elements_in_new_buffer%BufferSize;
+    }
+}
+
+
+
+template<typename T, typename Allocator, size_t BufferSize>
+template<typename ForwardIterator>
+void deque<T, Allocator, BufferSize>::__insert_at_back(size_type n, ForwardIterator first, ForwardIterator last)
+{
+    size_type cur_buffer_reserve_num = m_finish.m_last - m_finish.m_cur;
+    if( cur_buffer_reserve_num > n)//最后一个buffer有足够的空闲空间
+    {
+        stl::uninitialized_copy(first, last, m_finish.m_cur);
+        m_finish.m_cur += n;
+    }
+    else
+    {
+        size_type elements_in_new_buffer = n - cur_buffer_reserve_num;
+        size_type need_nodes = elements_in_new_buffer/BufferSize + 1;
+        __reserve_map_node_at_back(need_nodes);
+
+        ForwardIterator mid_last = stl::next(first, cur_buffer_reserve_num);
+        ForwardIterator mid_first = mid_last;
+        deque_2d_buffer_construct_helper d2b(need_nodes, 0, m_allocator);
+        for(size_type i = 0; i < need_nodes; ++i)
+            mid_first = d2b.copy(i, mid_first, last);
+
+        stl::uninitialized_copy(first, mid_last, m_finish.m_cur);
 
         //以下操作不会抛异常
         map_pointer new_node = m_finish.m_node + 1;
@@ -1451,15 +1532,15 @@ void deque<T, Allocator, BufferSize>::__insert_fill_n(iterator pos, size_type n,
 {
     if( pos == begin() )
     {
-        __insert_at_front(n, n, val);
+        __fill_at_front(n, val);
     }
     else if( pos == end() )
     {
-        __insert_at_back(n, n, val);
+        __fill_at_back(n, val);
     }
     else
     {
-        __insert_at_mid(pos, n, n, val);
+        __fill_at_mid(pos, n, val);
     }
 }
 
@@ -1468,7 +1549,7 @@ template<typename T, typename Allocator, size_t BufferSize>
 template<typename InputIterator>
 inline void deque<T, Allocator, BufferSize>::insert(iterator pos, InputIterator first, InputIterator last)
 {
-    __insert_range_fill_dispatch(pos, first, last, _type_traits<InputIterator>::is_integer());
+    __insert_range_fill_dispatch(pos, first, last, typename _type_traits<InputIterator>::is_integer());
 }
 
 
@@ -1529,11 +1610,22 @@ typename deque<T, Allocator, BufferSize>::iterator deque<T, Allocator, BufferSiz
     if( pos == end() )
         return pos;
 
+    if( pos == begin() )
+    {
+        pop_front();
+        return begin();
+    }
+
+    if( pos == stl::prev(end()))
+    {
+        pop_back();
+        return end();
+    }
 
     //使用copy或者copy_backward直接覆盖被删除的节点
     iterator next = stl::next(pos);
 
-    difference_type num = pos - m_start;
+    size_type num = pos - m_start;
     if( num < size()/2 )//清除点之前的元素较少，消耗更小
     {
         stl::copy_backward(m_start, pos, next);
@@ -1561,8 +1653,8 @@ typename deque<T, Allocator, BufferSize>::iterator deque<T, Allocator, BufferSiz
     }
     else
     {
-        difference_type num = last - first;
-        difference_type elements_before = first - m_start;//清除区间前方的元素个数
+        size_type num = last - first;
+        size_type elements_before = first - m_start;//清除区间前方的元素个数
 
         if( elements_before < (size()-num)/2 )//前方的元素较少，此时需要向后覆盖
         {
@@ -1580,7 +1672,7 @@ typename deque<T, Allocator, BufferSize>::iterator deque<T, Allocator, BufferSiz
             {
                 try
                 {
-                    m_allocator.deallocate(cur, BufferSize);
+                    m_allocator.deallocate(*cur, BufferSize);
                 }
                 catch(...)
                 {}
@@ -1590,7 +1682,7 @@ typename deque<T, Allocator, BufferSize>::iterator deque<T, Allocator, BufferSiz
         }
         else //后方的元素较少，此时需要向前覆盖元素
         {
-            stl::copy(last, m_finish, first);
+            stl::copy(last, m_finish, first);//如果last等于m_finish将不进行任何处理
 
             iterator new_finish = m_finish - num;
 
