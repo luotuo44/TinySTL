@@ -229,9 +229,6 @@ private:
     void __vector_copy_n(InputIterator first, InputIterator last, size_type n);
 
 
-    void __resize_small(size_type n);
-    void __resize_big(size_type n, const T &val);
-
 public:
     void assign(size_type n, const T& val = T());
     template<typename InputIterator>
@@ -576,54 +573,15 @@ template<typename T, typename Allocator>
 inline void vector<T, Allocator>::resize(size_type n, const T &val)
 {
     if( n < size() )
-        __resize_small(n);
-    else
-        __resize_big(n, val);
-}
-
-
-template<typename T, typename Allocator>
-void vector<T, Allocator>::__resize_small(size_type n)
-{
-    iterator new_finish = begin() + n;
-
-    try
     {
-        stl::destroy(new_finish, end());
+        erase(begin()+n, end());
     }
-    catch(...)//eat it
+    else if( n > size() )
     {
-    }
-
-    m_finish = new_finish;
-}
-
-
-template<typename T, typename Allocator>
-void vector<T, Allocator>::__resize_big(size_type n, const T &val)
-{
-    size_type old_size = size();
-
-    if( n < capacity() )
-    {
-        stl::uninitialized_fill_n(end(), n-old_size, val);
-        m_finish += n - old_size;
-    }
-    else
-    {
-        size_type old_capacity = capacity();
-        size_type new_capacity = stl::max(2*old_capacity, n);
-        vector_construct_helper vc(new_capacity, m_allocator);
-
-        vc.copy(begin(), end());
-        vc.fill_n(n-old_size, val);
-
-        vector_destroy_helper vd(m_start, old_size, old_capacity, m_allocator);
-        m_start = vc.release();
-        m_finish = m_start + n-old_size;
-        m_end_of_storage = m_start + new_capacity;
+        insert(end(), n-size(), val);
     }
 }
+
 
 
 //=========================================================================
