@@ -33,35 +33,28 @@ void testVectorConstructorCase1()
 
 
 template<typename T>
-void testVectorConstructorCase2(const T &t)
+void testVectorConstructorCase2(const T &t)//vector(size_type n, const T &val, const Allocator &allocator)
 {
     stl::vector<T> vec(30, t);
     assert(vec.size() == 30 && vec.capacity() >= 30);
     assert(vec.begin()+vec.size() == vec.end());
-
-    typename stl::vector<T>::iterator first = vec.begin();
-    for(; first != vec.end(); ++first)
-    {
-        assert(*first == t);
-    }
+    assert(std::count(vec.begin(), vec.end(), t) == 30);
 
     size_t capacity = vec.capacity();
     vec.clear();
     assert(vec.size() == 0 && capacity == vec.capacity());
 
 
-    stl::vector<T> cp_vec(vec);//copy constructor
-    assert(cp_vec.size() == vec.size());
-    for(size_t i = 0; i < vec.size(); ++i)
-        assert(cp_vec[i] == vec[i]);
+    size_t num = 8;
+    stl::vector<T> vec1(num, t);
+    assert(vec1.size()==num && std::count(vec1.begin(), vec1.end(), t)==static_cast<int>(num));
 
-    cp_vec = vec;//operator =
-    assert(cp_vec.size() == vec.size());
-    for(size_t i = 0; i < vec.size(); ++i)
-        assert(cp_vec[i] == vec[i]);
 
-    cp_vec.clear();
-    assert(cp_vec.empty());
+    stl::vector<T> cp_vec(vec1);//copy constructor
+    assert(cp_vec.size() == vec1.size() && std::equal(vec1.begin(), vec1.end(), cp_vec.begin()));
+
+    cp_vec.clear();//cp_vec和vec1没有关联
+    assert(cp_vec.empty() && vec1.size()==num);
 
 
     //边界情况
@@ -73,6 +66,7 @@ void testVectorConstructorCase2(const T &t)
 }
 
 
+//vector(ForwardIterator first, ForwardIterator last)
 void testVectorConstructorCase3()
 {
     double d1[] = { 2.3, 3,44, 1.56, 34.480, 3.14159, 0.126};
@@ -80,18 +74,14 @@ void testVectorConstructorCase3()
 
     stl::vector<double> vec1(d1, d1+n1);
 
-    assert(vec1.size() == n1);
-    for(size_t i = 0; i < n1; ++i)
-        assert(d1[i] == vec1[i]);
+    assert(vec1.size() == n1 && std::equal(d1, d1+n1, vec1.begin()));
 
 
     std::string str[] = {"a", "bb", "ccc", "dddd"};
     size_t n2 = sizeof(str)/sizeof(str[0]);
 
     stl::vector<std::string> vec2(str, str+n2);
-    assert(vec2.size() == n2);
-    for(size_t i = 0; i < n2; ++i)
-        assert(str[i] == vec2[i]);
+    assert(vec2.size() == n2 && std::equal(str, str+n2, vec2.begin()));
 
 
     //边界情况
@@ -102,6 +92,100 @@ void testVectorConstructorCase3()
     assert(vec4.size()==1 && vec4[0] == d1[0]);
 }
 
+
+template<typename Category>
+class SplitString
+{
+public:
+
+    typedef std::string value_type;
+    typedef ptrdiff_t difference_type;
+    typedef std::string* pointer;
+    typedef std::string& reference;
+    typedef Category iterator_category;
+
+public:
+    SplitString(const std::string &str, const std::string &dem)
+        : m_str(str), m_dem(dem)
+    {
+        m_last_pos = 0;
+        m_pos = m_str.find(m_dem, m_last_pos);
+    }
+
+    SplitString()
+        : m_str(std::string("")), m_dem(std::string("")),
+          m_pos(std::string::npos), m_last_pos(std::string::npos)
+    {
+    }
+
+
+    std::string operator * ()const
+    {
+        return m_str.substr(m_last_pos, m_pos-m_last_pos);
+    }
+
+
+    SplitString& operator ++()
+    {
+        if(m_pos == std::string::npos)//reach the end
+        {
+            m_last_pos = m_pos;
+            return *this;
+        }
+
+        m_last_pos = m_pos + m_dem.size();
+        m_pos = m_str.find(m_dem, m_last_pos);
+
+        return *this;
+    }
+
+
+    SplitString operator ++ (int)
+    {
+        SplitString tmp(*this);
+        ++(*this);
+        return tmp;
+    }
+
+    bool operator == (const SplitString &ss)const
+    {
+        return m_pos == ss.m_pos && m_last_pos == ss.m_last_pos;
+    }
+
+
+    bool operator != (const SplitString &ss)const
+    {
+        return !(*this == ss);
+    }
+
+private:
+    const std::string &m_str;
+    const std::string &m_dem;
+
+    std::string::size_type m_pos;
+    std::string::size_type m_last_pos;
+};
+
+
+//vector(InputIterator first, InputIterator last)
+void testVectorConstructorCase4()
+{
+    typedef SplitString<stl::input_iterator_tag> SS;
+
+    std::string str = "just a test";
+
+    stl::vector<std::string> vec(SS(str, " "), SS());
+    assert(vec.size()==3 && vec[0]=="just" && vec[1]=="a" && vec[2]=="test" );
+
+
+    str = "Vector";
+    stl::vector<std::string> vec1(SS(str, " "), SS());
+    assert(vec1.size()==1 && vec1[0]==str);
+
+
+    stl::vector<std::string> vec2((SS()), SS());
+    assert(vec2.empty());
+}
 
 
 void testVectorOperateAssignCase1()
@@ -114,16 +198,18 @@ void testVectorOperateAssignCase1()
     stl::vector<double> vec2;
     vec2 = vec1;
 
-    assert(vec2.size() == vec1.size());
-    for(size_t i = 0; i < vec1.size(); ++i)
-        assert(vec2[i] == vec1[i]);
+    assert(vec2.size()==vec1.size() && std::equal(vec1.begin(), vec1.end(), vec2.begin()));
 
 
     vec2 = vec2;//测试赋值给自己
-    assert(vec2.size() == vec1.size());
-    for(size_t i = 0; i < vec1.size(); ++i)
-        assert(vec2[i] == vec1[i]);
+    assert(vec2.size()==vec1.size() && std::equal(vec1.begin(), vec1.end(), vec2.begin()));
 
+
+    stl::vector<double> vec22(2, 1.2);
+    assert(vec22.size()==2 && vec22[0]==1.2 && vec22[1]==1.2);
+
+    vec22 = vec1;//原本就有元素的
+    assert(vec22.size()==vec1.size() && std::equal(vec1.begin(), vec1.end(), vec22.begin()));
 
 
     std::string str[] = {"a", "bb", "ccc", "dddd"};
@@ -136,15 +222,14 @@ void testVectorOperateAssignCase1()
     assert(vec4.empty());
 
     vec4 = vec3;
-    assert(vec4.size() == vec3.size());
-    for(size_t i = 0; i < vec3.size(); ++i)
-        assert(vec3[i] == vec4[i]);
+    assert(vec4.size()==vec3.size() && std::equal(vec3.begin(), vec3.begin(), vec4.begin()));
 
 
     vec3.clear();
-    vec4 = vec3;
+    vec4 = vec3;//赋空值
     assert(vec4.empty());
 }
+
 
 
 void testVectorBeginEndCase1()
@@ -279,12 +364,13 @@ void testVectorResizeReserveCase1()
     size_t cap = vec1.capacity();
 
     vec1.resize(1);
-    assert(vec1.size() == 1);
+    assert(vec1.size() == 1  && vec1[0]==2.3);
     assert(vec1.capacity() == cap);
     assert(p == vec1.data());
 
     vec1.resize(size, 6.6666);
     assert(vec1.size() == size);
+    assert(vec1[0]==2.3 && std::count(vec1.begin()+1, vec1.end(), 6.6666)==static_cast<int>(size-1) );
     assert(vec1.capacity() == cap);
     assert(p == vec1.data());
 
@@ -305,6 +391,11 @@ void testVectorResizeReserveCase1()
     assert(vec1.empty());
     assert(vec1.capacity() == cap);
     assert(vec1.data() == p);
+
+    vec1.resize(1, 1.1);
+    assert(vec1.size()==1 && vec1[0]==1.1);
+    vec1.resize(2*cap, 2.2);
+    assert(vec1.size()==2*cap && vec1[0]==1.1 && std::count(vec1.begin()+1, vec1.end(), 2.2)==static_cast<int>(2*cap-1) );
 }
 
 
@@ -320,17 +411,8 @@ void testVectorSwapCase1(const T &t1, const T &t2)
     vec1.swap(vec2);
     assert(vec1.size() == 2);
     assert(vec2.size() == 10);
-
-    typename stl::vector<T>::iterator it = vec1.begin();
-    while( it != vec1.end() )
-    {
-        assert(*it++ == t2);
-    }
-
-    for(it = vec2.begin(); it != vec2.end(); ++it)
-    {
-        assert(*it == t1);
-    }
+    assert(std::count(vec1.begin(), vec1.end(), t2) == static_cast<int>(vec1.size()) );
+    assert(std::count(vec2.begin(), vec2.end(), t1) == static_cast<int>(vec2.size()) );
 
 
     size_t size = vec1.size();
@@ -340,6 +422,11 @@ void testVectorSwapCase1(const T &t1, const T &t2)
     stl::vector<T>(vec1).swap(vec1);
     assert(size == vec1.size());
     assert(vec1.capacity() == size);
+
+
+    stl::vector<T> vec3;
+    vec3.swap(vec1);
+    assert(vec1.empty() && vec3.size()==2 && vec3[0]==t2 && vec3[1]==t2);
 }
 
 
@@ -386,27 +473,22 @@ void testVectorAssignCase1()
     long l_size = 4;
     vec.assign(l_size, "C++");
     assert(vec.size() == static_cast<size_t>(l_size) );
-    for(size_t i = 0; i < vec.size(); ++i)
-        assert(vec[i] == "C++");
+    assert(std::count(vec.begin(), vec.end(), "C++") == l_size);
 
 
     //会重新分配内存
     size = vec.capacity() + 1;
     vec.assign(size, "Test");
-    assert(vec.size() == size);
-    for(size_t i = 0; i < vec.size(); ++i)
-        assert(vec[i] == "Test");
+    assert(vec.size() == size && std::count(vec.begin(), vec.end(), "Test") == static_cast<int>(size));
+
 
     //边界测试
     vec.assign(0, "vector");
     assert(vec.empty());
 
-
     stl::vector<std::string> vec2;
     vec2.assign(3, "empty");
-    assert(vec2.size() == 3);
-    for(size_t i = 0; i < vec.size(); ++i)
-        assert(vec[i] == "empty");
+    assert(vec2.size() == 3 && std::count(vec2.begin(), vec2.end(), "empty")==3);
 }
 
 
@@ -417,22 +499,22 @@ void testVectorAssignCase2()//测试random iterator
 
     stl::vector<double> vec;
     vec.assign(d1, d1+2);
-    assert(vec.size() == 2);
-    for(size_t i = 0; i < vec.size(); ++i)
-        assert(vec[i] == d1[i]);
+    assert(vec.size() == 2 && std::equal(vec.begin(), vec.end(), d1));
 
 
     //不会重新分配内存
-    vec.assign(d1, d1+1);
+    vec.assign(d1, d1+1);//缩小
     assert(vec.size() == 1 && vec[0] == d1[0]);
+
+    vec.assign(d1+3, d1+6);//扩大
+    assert(vec.size()==3 && std::equal(d1+3, d1+6, vec.begin()));
 
 
     //会重新分配内存
     assert(n1 > vec.capacity());
     vec.assign(d1, d1+n1);
-    assert(vec.size() == n1);
-    for(size_t i = 0; i < vec.size(); ++i)
-        assert(vec[i] == d1[i]);
+    assert(vec.size() == n1 && std::equal(d1, d1+n1, vec.begin()));
+
 
     vec.assign(d1, d1);
     assert(vec.empty());
@@ -440,103 +522,31 @@ void testVectorAssignCase2()//测试random iterator
 
 
 
-template<typename Category>
-class SplitString
-{
-public:
-
-    typedef std::string value_type;
-    typedef ptrdiff_t difference_type;
-    typedef std::string* pointer;
-    typedef std::string& reference;
-    typedef Category iterator_category;
-
-public:
-    SplitString(const std::string &str, const std::string &dem)
-        : m_str(str), m_dem(dem)
-    {
-        m_last_pos = 0;
-        m_pos = m_str.find(m_dem, m_last_pos);
-    }
-
-    SplitString()
-        : m_str(std::string("")), m_dem(std::string("")),
-          m_pos(std::string::npos), m_last_pos(std::string::npos)
-    {
-    }
-
-
-    std::string operator * ()const
-    {
-        return m_str.substr(m_last_pos, m_pos-m_last_pos);
-    }
-
-
-    SplitString& operator ++()
-    {
-        if(m_pos == std::string::npos)//reach the end
-        {
-            m_last_pos = m_pos;
-            return *this;
-        }
-
-        m_last_pos = m_pos + m_dem.size();
-        m_pos = m_str.find(m_dem, m_last_pos);
-
-        return *this;
-    }
-
-
-    SplitString operator ++ (int)
-    {
-        SplitString tmp(*this);
-        ++(*this);
-        return tmp;
-    }
-
-    bool operator == (const SplitString &ss)const
-    {
-        return m_pos == ss.m_pos && m_last_pos == ss.m_last_pos;
-    }
-
-
-    bool operator != (const SplitString &ss)const
-    {
-        return !(*this == ss);
-    }
-
-private:
-    const std::string &m_str;
-    const std::string &m_dem;
-
-    std::string::size_type m_pos;
-    std::string::size_type m_last_pos;
-};
-
 
 void testVectorAssignCase3()//测试 input iterator
 {
+    typedef SplitString<stl::input_iterator_tag> SS;
     std::string str("a test");
     stl::vector<std::string> vec;
-    vec.assign(SplitString<stl::input_iterator_tag>(str, " "), SplitString<stl::input_iterator_tag>());
+    vec.assign(SS(str, " "), SS());
 
     assert(vec.size() == 2);
     assert(vec[0] == "a" && vec[1] == "test");
 
 
-    vec.assign(SplitString<stl::input_iterator_tag>("test", " "), SplitString<stl::input_iterator_tag>());
+    vec.assign(SS("test", " "), SS());
     assert(vec.size() == 1 && vec[0] == "test");
 
 
     assert(vec.capacity() < 4);
     str = "this is just a test";
-    vec.assign(SplitString<stl::input_iterator_tag>(str, " "), SplitString<stl::input_iterator_tag>());
+    vec.assign(SS(str, " "), SS());
     assert(vec.size() == 5);
     std::vector<std::string> vvec(SplitString<std::input_iterator_tag>(str, " "), SplitString<std::input_iterator_tag>());
-    assert(stl::equal(vec.begin(), vec.end(), vvec.begin()));
+    assert(vec.size()==vvec.size() && stl::equal(vec.begin(), vec.end(), vvec.begin()));
 
 
-    vec.assign(SplitString<stl::input_iterator_tag>(), SplitString<stl::input_iterator_tag>());
+    vec.assign(SS(), SS());
     assert(vec.empty());
 }
 
@@ -659,24 +669,22 @@ void testVectorInsertFillCase1()
     stl::vector<int> vec;
 
     vec.insert(vec.begin(), static_cast<size_t>(3), 13);
-    assert(vec.size() == 3 && vec.capacity() == 3);
-    for(size_t i = 0; i < vec.size(); ++i)
-        assert(vec[i] == 13);
+    assert(vec.size() == 3 && vec.capacity() == 3 && std::count(vec.begin(), vec.end(), 13)==3);
 
 
+    //插入的元素多于原有的
     vec.insert(vec.begin()+1, static_cast<size_t>(5), 14);
     assert(vec.size() == 8 && vec.front() == 13);
-    size_t j = 1;
-    for(; j < 6; ++j)
-    {
-        assert(vec[j] == 14);
-    }
+    assert(std::count(vec.begin()+1, vec.begin()+6, 14)==5);
+    assert(std::count(vec.begin()+6, vec.end(), 13) == 2);
 
-    while(j < vec.size())
-    {
-        assert(vec[j] == 13);
-        ++j;
-    }
+
+    //插入的元素小于原有的
+    vec.insert(vec.begin()+1, 3, 15);
+    assert(vec.size()==11 && vec.front()==13);
+    assert(std::count(vec.begin()+1, vec.begin()+4, 15)==3);
+    assert(std::count(vec.begin()+4, vec.begin()+9, 14)==5);
+    assert(std::count(vec.begin()+9, vec.end(), 13)==2);
 }
 
 
@@ -696,7 +704,7 @@ void testVectorInsertFillCase2()
     int a1[] = {0, 1, 3, 4};
     size_t n1 = sizeof(a1)/sizeof(a1[0]);
     vec1.assign(a1, a1+n1);
-    assert(vec1.size() == n1);
+    assert(vec1.size() == n1 && std::equal(a1, a1+n1, vec1.begin()));
 
     //插入的长度小于backward
     vec1.insert(vec1.begin()+2, 1, 2);
@@ -739,17 +747,13 @@ void testVectorInsertRangeCase1()
     stl::vector<int> vec;
     vec.reserve(10);
     vec.insert(vec.end(), a1, a1+3);
-    assert(vec.size() == 3);
-    for(size_t i = 0; i < vec.size(); ++i)
-        assert((size_t)vec[i] == i+1);
+    assert(vec.size() == 3 && std::equal(vec.begin(), vec.end(), a1));
 
 
     stl::vector<int> vec1;
     vec1.reserve(10);
     vec1.insert(vec1.begin(), a1, a1+4);
-    assert(vec1.size() == 4);
-    for(size_t i = 0; i < 4; ++i)
-        assert(vec1[i] == a1[i]);
+    assert(vec1.size() == 4 && std::equal(vec1.begin(), vec1.end(), a1));
 
 
     int a2[] = {1, 2, 5, 3, 4};
@@ -794,6 +798,15 @@ void testVectorInsertRangeCase2()
     cp_vec1.insert(cp_vec1.end(), SplitString<std::input_iterator_tag>(str, " "), SplitString<std::input_iterator_tag>());
     assert(vec1.size() == cp_vec1.size());
     assert(stl::equal(vec1.begin(), vec1.end(), cp_vec1.begin()));
+
+    vec.insert(vec.end(), SplitString<stl::input_iterator_tag>(), SplitString<stl::input_iterator_tag>());
+    assert(stl::equal(vec1.begin(), vec1.end(), cp_vec1.begin()));
+
+
+    vec.clear();
+    assert(vec.empty());
+    vec.insert(vec.end(), SplitString<stl::input_iterator_tag>(), SplitString<stl::input_iterator_tag>());
+    assert(vec.empty());
 }
 
 
@@ -867,6 +880,8 @@ void testVector()
     testVectorConstructorCase2<std::string>("TinySTL");
 
     testVectorConstructorCase3();
+
+    testVectorConstructorCase4();
 
 
     testVectorOperateAssignCase1();
