@@ -17,6 +17,7 @@
 #include"Test/testIterator.h"
 #include"Test/testVector.h"
 #include"Test/testList.h"
+#include"Test/testDeque.h"
 
 using namespace std;
 
@@ -32,6 +33,7 @@ int main()
     stl::testItertor();
     stl::testVector();
     stl::testList();
+    stl::testDeque();
 
     cout << "Hello World!" << endl;
     return 0;
