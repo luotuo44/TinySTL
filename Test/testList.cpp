@@ -15,11 +15,10 @@
 #include<list>
 #include<string>
 #include<functional>
-#include<iostream>
-#include<vector>
 
 
 #include"../bits/stl_numeric.h"
+#include"../vector"
 
 namespace stl
 {
@@ -173,7 +172,7 @@ void testListBeginEndCase2()
     size_t n1 = sizeof(d1)/sizeof(d1[0]);
 
     stl::list<double> alist1(d1, d1+n1);
-    std::vector<double> vec1(d1, d1+n1);
+    stl::vector<double> vec1(d1, d1+n1);
 
     assert(vec1.size() == alist1.size());
     assert(stl::equal(alist1.rbegin(), alist1.rend(), vec1.rbegin()));
@@ -512,7 +511,7 @@ void testListEraseCase2()
     int a1[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
     size_t n1 = sizeof(a1)/sizeof(a1[0]);
     alist1.insert(alist1.begin(), a1, a1+n1);
-    std::vector<int> vec(a1, a1+n1);
+    stl::vector<int> vec(a1, a1+n1);
 
     assert(alist1.size() == n1 );
 
@@ -992,7 +991,7 @@ void testListSortCase2()
 {
     srand(time(NULL) + rand());
 
-    std::vector<int> vec;
+    stl::vector<int> vec;
     stl::list<int> alist1;
 
     stl::generate_n(stl::back_inserter(vec), SIZE, randNum);

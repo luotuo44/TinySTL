@@ -11,10 +11,6 @@
 #include<stdlib.h>
 
 #include<string>
-#include<vector>
-#include<list>
-#include<iostream>
-#include<iterator>
 
 #include"memory"
 #include"algorithm"
@@ -697,7 +693,7 @@ void testDequeBeginEndCase2()
     size_t n1 = sizeof(d1)/sizeof(d1[0]);
 
     stl::deque<int, stl::allocator<int>, 4> deq1(d1, d1+n1);
-    std::vector<int> vec1(d1, d1+n1);
+    stl::vector<int> vec1(d1, d1+n1);
 
     assert(vec1.size() == deq1.size());
     assert(stl::equal(deq1.rbegin(), deq1.rend(), vec1.rbegin()));
