@@ -18,6 +18,7 @@
 #include"Test/testVector.h"
 #include"Test/testList.h"
 #include"Test/testDeque.h"
+#include"Test/testStack.h"
 
 using namespace std;
 
@@ -34,6 +35,7 @@ int main()
     stl::testVector();
     stl::testList();
     stl::testDeque();
+    stl::testStack();
 
     cout << "Hello World!" << endl;
     return 0;
