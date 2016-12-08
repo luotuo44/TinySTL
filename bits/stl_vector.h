@@ -861,7 +861,7 @@ typename vector<T, Allocator>::iterator vector<T, Allocator>::erase(iterator fir
 template<typename T, typename Allocator>
 inline bool operator == (const vector<T, Allocator> &lhs, const vector<T, Allocator> &rhs)
 {
-    return (lhs.size() == rhs.size()) && equal(lhs.begin(), lhs.end(), rhs.begin());
+    return (lhs.size() == rhs.size()) && stl::equal(lhs.begin(), lhs.end(), rhs.begin());
 }
 
 
@@ -875,14 +875,14 @@ inline bool operator != (const vector<T, Allocator> &lhs, const vector<T, Alloca
 template<typename T, typename Allocator>
 inline bool operator < (const vector<T, Allocator> &lhs, const vector<T, Allocator> &rhs)
 {
-    return lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+    return stl::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
 }
 
 
 template<typename T, typename Allocator>
 inline bool operator > (const vector<T, Allocator> &lhs, const vector<T, Allocator> &rhs)
 {
-    return lexicographical_compare(rhs.begin(), rhs.end(), lhs.begin(), lhs.end());
+    return stl::lexicographical_compare(rhs.begin(), rhs.end(), lhs.begin(), lhs.end());
 }
 
 

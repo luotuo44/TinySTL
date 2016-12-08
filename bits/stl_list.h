@@ -1024,14 +1024,14 @@ inline bool operator != (const list<T, Allocator> &lhs, const list<T, Allocator>
 template<typename T, typename Allocator>
 inline bool operator < (const list<T, Allocator> &lhs, const list<T, Allocator> &rhs)
 {
-    return lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+    return stl::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
 }
 
 
 template<typename T, typename Allocator>
 inline bool operator > (const list<T, Allocator> &lhs, const list<T, Allocator> &rhs)
 {
-    return lexicographical_compare(rhs.begin(), rhs.end(), lhs.begin(), lhs.end());
+    return stl::lexicographical_compare(rhs.begin(), rhs.end(), lhs.begin(), lhs.end());
 }
 
 

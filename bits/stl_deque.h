@@ -1730,14 +1730,14 @@ inline bool operator != (const deque<T, Allocator, BufferSize> &lhs, const deque
 template<typename T, typename Allocator, size_t BufferSize>
 inline bool operator < (const deque<T, Allocator, BufferSize> &lhs, const deque<T, Allocator, BufferSize> &rhs)
 {
-    return lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+    return stl::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
 }
 
 
 template<typename T, typename Allocator, size_t BufferSize>
 inline bool operator > (const deque<T, Allocator, BufferSize> &lhs, const deque<T, Allocator, BufferSize> &rhs)
 {
-    return lexicographical_compare(rhs.begin(), rhs.end(), lhs.begin(), lhs.end());
+    return stl::lexicographical_compare(rhs.begin(), rhs.end(), lhs.begin(), lhs.end());
 }
 
 
