@@ -11,21 +11,67 @@ namespace stl
 {
 
 
+template<typename RandomAccessIterator>
+inline typename iterator_traits<RandomAccessIterator>::difference_type __iterator_num(RandomAccessIterator first, RandomAccessIterator last)
+{
+    //last指向一个有意义的节点
+    return stl::distance(first, last+1);
+}
+
+
+template<typename RandomAccessIterator>
+inline bool __hasLeftChild(RandomAccessIterator first, RandomAccessIterator it, RandomAccessIterator last)
+{
+    return 2*__iterator_num(first, it) <= stl::distance(first, last);
+}
+
+
+template<typename RandomAccessIterator>
+inline bool __hasRightChild(RandomAccessIterator first, RandomAccessIterator it, RandomAccessIterator last)
+{
+    return 2*__iterator_num(first, it)+1 <= stl::distance(first, last);
+}
+
+
+template<typename RandomAccessIterator>
+inline RandomAccessIterator __leftChild(RandomAccessIterator first, RandomAccessIterator it)
+{
+    return first + 2*__iterator_num(first, it)-1;
+}
+
+
+template<typename RandomAccessIterator>
+inline RandomAccessIterator __rightChild(RandomAccessIterator first, RandomAccessIterator it)
+{
+    return first + 2*__iterator_num(first, it);
+}
+
+
+template<typename RandomAccessIterator>
+inline RandomAccessIterator __fatherNode(RandomAccessIterator first, RandomAccessIterator it)
+{
+    if( first == it )
+        return it;
+
+    return first + __iterator_num(first, it)/2 - 1;
+}
+
 template<typename RandomAccessIterator, typename Compare>
 bool is_heap(RandomAccessIterator first, RandomAccessIterator last, Compare comp)
 {
     if( first == last || first+1 == last)
         return true;
 
-    while( first != last )
+    RandomAccessIterator it = first;
+    while( __hasLeftChild(first, it, last) )
     {
-        if( 2*first < last && !comp(2*first, first))
+        if( __hasLeftChild(first, it, last) && !comp(*__leftChild(first, it), *it) )
             return false;
 
-        if( 2*first+1 < last && !comp(2*first+1, first) )
+        if( __hasRightChild(first, it, last) && !comp(*__rightChild(first, it), *it) )
             return false;
 
-        ++first;
+        ++it;
     }
 
     return true;
@@ -47,20 +93,21 @@ void make_heap(RandomAccessIterator first, RandomAccessIterator last, Compare co
     if( first == last || first+1 == last)
         return ;
 
-    for(RandomAccessIterator it = (last-1)/2; it >= first; --it)
+    RandomAccessIterator it = first + stl::distance(first, last)/2 - 1;
+    for(; it >= first; --it)
     {
         RandomAccessIterator pos = it;
         typename iterator_traits<RandomAccessIterator>::value_type val = *pos;
 
-        while( 2*pos < last )
+        while( __hasLeftChild(first, pos, last) )
         {
-            RandomAccessIterator min_child = 2*pos;
-            if( min_child+1 < last && comp(*min_child, *(min_child+1)) )
-            {
-                ++min_child;
-            }
+            RandomAccessIterator min_child = __leftChild(first, pos);
 
-            if( comp(val, *min_child) )
+            //min_child+1为右子节点。这里是找到左右孩子节点中最comp的那个
+            if( min_child+1 < last && comp(*min_child, *(min_child+1) ) )
+                ++min_child;
+
+            if(comp(val, *min_child))
             {
                 *pos = *min_child;
                 pos = min_child;
@@ -97,10 +144,10 @@ void push_heap(RandomAccessIterator first, RandomAccessIterator last, Compare co
     typename iterator_traits<RandomAccessIterator>::value_type val = *(last-1);
     RandomAccessIterator replace_pos = last-1;
 
-    while( replace_pos >= first )
+    while( replace_pos > first )
     {
-        RandomAccessIterator father = first + (replace_pos-first)/2;
-        if( comp(val, father) )
+        RandomAccessIterator father = __fatherNode(first, replace_pos);
+        if(comp(val, *father))
             break;
         else
         {
@@ -139,29 +186,30 @@ void pop_heap(RandomAccessIterator first, RandomAccessIterator last, Compare com
 
     while( replace_pos < last )
     {
-        if( 2*replace_pos+1 < last )//have two children
+        if( __hasRightChild(first, replace_pos, last) )//have two children
         {
-            if( comp(2*replace_pos, 2*replace_pos+1) )
-                replace_child = 2*replace_pos + 1;
+            if( comp(*__leftChild(first, replace_pos), *__rightChild(first, replace_pos)))
+                replace_child = __rightChild(first, replace_pos);
             else
-                replace_child = 2*replace_pos;
+                replace_child = __leftChild(first, replace_pos);
 
-            if( comp(val, replace_child) )
+            if( comp(val, *replace_child) )
             {
                 *replace_pos = *replace_child;
                 replace_pos = replace_child;
             }
-            else//two children all less than val
+            else//two children all comp to val
             {
                 break;
             }
         }
-        else if( 2*replace_pos < last && comp(val, 2*replace_pos))//only one child
+        else if( __hasLeftChild(first, replace_pos, last) && comp(val, *__leftChild(first, replace_pos)) )//only one child
         {
-            *replace_pos = *(2*replace_pos);
-            replace_pos = 2*replace_pos;
+            RandomAccessIterator child = __leftChild(first, replace_pos);
+            *replace_pos = *child;
+            replace_pos = child;
         }
-        else//no child
+        else //no child or all children !comp val
         {
             break;
         }
@@ -193,7 +241,7 @@ void sort_heap(RandomAccessIterator first, RandomAccessIterator last, Compare co
 
 
 template<typename RandomAccessIterator>
-inline void pop_heap(RandomAccessIterator first, RandomAccessIterator last)
+inline void sort_heap(RandomAccessIterator first, RandomAccessIterator last)
 {
     typedef typename iterator_traits<RandomAccessIterator>::value_type value_type;
     stl::sort_heap(first, last, stl::less_equal<value_type>());
