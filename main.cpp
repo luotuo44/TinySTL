@@ -20,6 +20,7 @@
 #include"Test/testDeque.h"
 #include"Test/testStack.h"
 #include"Test/testQueue.h"
+#include"Test/testHeap.h"
 
 using namespace std;
 
@@ -38,6 +39,7 @@ int main()
     stl::testDeque();
     stl::testStack();
     stl::testQueue();
+    stl::testHeap();
 
     cout << "Hello World!" << endl;
     return 0;
