@@ -36,7 +36,7 @@ public:
     const_reference top()const { return m_seq.front(); }
 
 public:
-    priority_queue(const Compare &comp = Compare(), const Sequence &seq = Sequence());
+    explicit priority_queue(const Compare &comp = Compare(), const Sequence &seq = Sequence());
 
     template<typename InputIterator>
     priority_queue(InputIterator first, InputIterator last, const Compare &comp = Compare(), const Sequence &seq = Sequence());

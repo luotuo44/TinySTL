@@ -21,6 +21,7 @@
 #include"Test/testStack.h"
 #include"Test/testQueue.h"
 #include"Test/testHeap.h"
+#include"Test/testPriorityQueue.h"
 
 using namespace std;
 
@@ -40,6 +41,7 @@ int main()
     stl::testStack();
     stl::testQueue();
     stl::testHeap();
+    stl::testPriorityQueue();
 
     cout << "Hello World!" << endl;
     return 0;
