@@ -5,6 +5,7 @@
 #define QUEUE
 
 #include"bits/stl_queue.h"
+#include"bits/stl_priority_queue.h"
 
 #endif // QUEUE
 
