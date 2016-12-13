@@ -928,8 +928,155 @@ OutputIterator unique_copy(ForwardIterator first, ForwardIterator last, OutputIt
 }
 
 
-template<typename ForwardIterator, typename Compare>
-ForwardIterator is_sorted_until(ForwardIterator first, ForwardIterator last, Compare comp)
+
+template<typename ForwardIterator, typename T, typename StrictWeaklyCompare>
+bool __binary_search_dispatch(ForwardIterator first, ForwardIterator last, const T &val, StrictWeaklyCompare comp, stl::forward_iterator_tag)
+{
+    while(first != last)
+    {
+        if(!comp(*first, val) && !(comp(val, *first)))
+            break;
+
+        ++first;
+    }
+
+    return first != last;
+}
+
+
+
+template<typename RandomAccessItreator, typename T, typename StrictWeaklyCompare>
+bool __binary_search_dispatch(RandomAccessItreator first, RandomAccessItreator last, const T &val, StrictWeaklyCompare comp, stl::random_access_iterator_tag)
+{
+    while(first < last)
+    {
+        typename iterator_traits<RandomAccessItreator>::difference_type n = stl::distance(first, last);
+        RandomAccessItreator mid = first + n/2;
+
+        if( !comp(val, *mid) && !comp(*mid, val) )
+            return true;
+        else if( comp(val, *mid) )
+            last = mid;
+        else
+            first = mid+1;
+    }
+
+    return false;
+}
+
+
+template<typename ForwardIterator, typename T, typename StrictWeaklyCompare>
+inline bool binary_search(ForwardIterator first, ForwardIterator last, const T &val, StrictWeaklyCompare comp)
+{
+    return __binary_search_dispatch(first, last, val, comp, stl::iterator_category(first));
+}
+
+
+template<typename ForwardIterator, typename T>
+inline bool binary_search(ForwardIterator first, ForwardIterator last, const T &val)
+{
+    return stl::binary_search(first, last, val, stl::less<T>());
+}
+
+
+
+template<typename RandomAccessItreator, typename T, typename StrictWeaklyCompare>
+RandomAccessItreator __lower_bound_dispatch(RandomAccessItreator first, RandomAccessItreator last, const T &val, StrictWeaklyCompare comp, stl::random_access_iterator_tag)
+{
+    while(first < last)
+    {
+        RandomAccessItreator mid = first + stl::distance(first, last)/2;
+
+        if( comp(*mid, val) )
+            first = mid + 1;
+        else
+            last = mid;
+    }
+
+    return first;
+}
+
+
+template<typename ForwardIterator, typename T, typename StrictWeaklyCompare>
+ForwardIterator __lower_bound_dispatch(ForwardIterator first, ForwardIterator last, const T &val, StrictWeaklyCompare comp, stl::forward_iterator_tag)
+{
+    while(first != last)
+    {
+        if(comp(val, *first)) //equal or less
+            break;
+
+        ++first;
+    }
+
+    return first;
+}
+
+
+
+template<typename ForwardIterator, typename T, typename StrictWeaklyCompare>
+inline ForwardIterator lower_bound(ForwardIterator first, ForwardIterator last, const T &val, StrictWeaklyCompare comp)
+{
+    return __lower_bound_dispatch(first, last, val, comp, stl::iterator_category(first));
+}
+
+
+template<typename ForwardIterator, typename T>
+inline ForwardIterator lower_bound(ForwardIterator first, ForwardIterator last, const T &val)
+{
+    return stl::lower_bound(first, last, val, stl::less<T>());
+}
+
+
+
+template<typename RandomAccessItreator, typename T, typename StrictWeaklyCompare>
+RandomAccessItreator __upper_bound_dispatch(RandomAccessItreator first, RandomAccessItreator last, const T &val, StrictWeaklyCompare comp, stl::random_access_iterator_tag)
+{
+    while(first < last)
+    {
+        RandomAccessItreator mid = first + stl::distance(first, last)/2;
+
+        if( comp(val, *mid) )
+            last = mid;
+        else
+            first = mid + 1;
+    }
+
+    return first;
+}
+
+
+template<typename ForwardIterator, typename T, typename StrictWeaklyCompare>
+ForwardIterator __upper_bound_dispatch(ForwardIterator first, ForwardIterator last, const T &val, StrictWeaklyCompare comp, stl::forward_iterator_tag)
+{
+    while(first != last)
+    {
+        if( comp(*first, val) && !comp(val, *first) )//greater
+            break;
+
+        ++first;
+    }
+
+    return first;
+}
+
+
+
+template<typename ForwardIterator, typename T, typename StrictWeaklyCompare>
+inline ForwardIterator upper_bound(ForwardIterator first, ForwardIterator last, const T &val, StrictWeaklyCompare comp)
+{
+    return __upper_bound_dispatch(first, last, val, comp, stl::iterator_category(first));
+}
+
+
+template<typename ForwardIterator, typename T>
+inline ForwardIterator upper_bound(ForwardIterator first, ForwardIterator last, const T &val)
+{
+    return stl::upper_bound(first, last, val, stl::less<T>());
+}
+
+
+template<typename ForwardIterator, typename StrictWeaklyCompare>
+ForwardIterator is_sorted_until(ForwardIterator first, ForwardIterator last, StrictWeaklyCompare comp)
 {
     if(first == last)
         return last;
