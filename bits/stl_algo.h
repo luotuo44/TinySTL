@@ -1002,10 +1002,13 @@ ForwardIterator __lower_bound_dispatch(ForwardIterator first, ForwardIterator la
 {
     while(first != last)
     {
-        if(comp(val, *first)) //equal or less
-            break;
+        if( comp(*first, val) && !comp(val, *first) )
+        {
+            ++first;
+            continue;
+        }
 
-        ++first;
+        break;
     }
 
     return first;
@@ -1050,7 +1053,7 @@ ForwardIterator __upper_bound_dispatch(ForwardIterator first, ForwardIterator la
 {
     while(first != last)
     {
-        if( comp(*first, val) && !comp(val, *first) )//greater
+        if( comp(val, *first) && !comp(*first, val) )//greater
             break;
 
         ++first;

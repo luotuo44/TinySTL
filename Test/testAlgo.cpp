@@ -20,6 +20,7 @@
 #include"../iterator"
 #include"../type_traits"
 #include"../list"
+#include"../vector"
 
 
 
@@ -396,15 +397,18 @@ void testForeachCase1()
 
 struct RandomNumber
 {
-    RandomNumber(int seed)
+    RandomNumber(int seed, int m = 1000)
+        : mod(m)
     {
         srand(seed);
     }
 
     int operator ()()
     {
-        return rand()%1000;
+        return rand()%mod;
     }
+
+    int mod;
 };
 
 
@@ -1115,6 +1119,185 @@ void testUniqueCopyCase2()
 }
 
 
+
+void testBinarySearchCase1()
+{
+    int arr[] = {2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34};
+    size_t n = sizeof(arr)/sizeof(arr[0]);
+
+
+    for(int i = 0; i < 40; ++i)
+    {
+        for(size_t j = 0; j < n; ++j)
+        {
+            assert(stl::binary_search(arr, arr+j, i) == std::binary_search(arr, arr+j, i));
+        }
+    }
+}
+
+
+void testBinarysearchCase2()
+{
+    stl::vector<int> vec1;
+    std::vector<int> vec2;
+    vec1.reserve(100);
+    vec2.reserve(100);
+
+    for(size_t i = 1; i < 100; ++i)
+    {
+        vec1.clear();
+        vec2.resize(i);
+
+        std::generate(vec2.begin(), vec2.end(), RandomNumber(time(NULL) + rand(), 20));
+        std::sort(vec2.begin(), vec2.end());
+        std::copy(vec2.begin(), vec2.end(), stl::back_inserter(vec1));
+
+        for(int j = vec2.front()-2; j < vec2.back()+2; ++j)
+        {
+            assert(stl::binary_search(vec1.begin(), vec1.end(), j) == std::binary_search(vec2.begin(), vec2.end(), j));
+        }
+    }
+}
+
+
+void testBinarysearchCase3()
+{
+    int arr[] = {2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34};
+    size_t n = sizeof(arr)/sizeof(arr[0]);
+
+    stl::list<int> alist(arr, arr+n);
+
+    for(int i = 0; i < 40; ++i)
+    {
+        for(size_t j = 0; j < n; ++j)
+        {
+            assert(stl::binary_search(alist.begin(), stl::next(alist.begin(), j), i) == std::binary_search(arr, arr+j, i));
+        }
+    }
+}
+
+
+
+void testLowerBoundCase1()
+{
+    int arr[] = {2, 4, 6, 6, 8, 8, 10, 10, 10, 12, 12, 12, 12, 14, 14, 16, 18, 18, 20, 22, 22, 22, 24, 32, 34};
+    size_t n = sizeof(arr)/sizeof(arr[0]);
+
+
+    for(int i = 0; i < 40; ++i)
+    {
+        for(size_t j = 0; j < n; ++j)
+        {
+            assert(stl::lower_bound(arr, arr+j, i) == std::lower_bound(arr, arr+j, i));
+        }
+    }
+}
+
+
+void testLowerBoundCase2()
+{
+    stl::vector<int> vec1;
+    std::vector<int> vec2;
+    vec1.reserve(100);
+    vec2.reserve(100);
+
+    for(size_t i = 1; i < 100; ++i)
+    {
+        vec1.clear();
+        vec2.resize(i);
+
+        std::generate(vec2.begin(), vec2.end(), RandomNumber(time(NULL) + rand(), 20));
+        std::sort(vec2.begin(), vec2.end());
+        std::copy(vec2.begin(), vec2.end(), stl::back_inserter(vec1));
+
+        for(int j = vec2.front()-2; j < vec2.back()+2; ++j)
+        {
+            assert(stl::distance(vec1.begin(), stl::lower_bound(vec1.begin(), vec1.end(), j))
+                   == std::distance(vec2.begin(), std::lower_bound(vec2.begin(), vec2.end(), j)));
+        }
+    }
+}
+
+
+void testLowerBoundCase3()
+{
+    int arr[] = {2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34};
+    size_t n = sizeof(arr)/sizeof(arr[0]);
+
+    stl::list<int> alist(arr, arr+n);
+
+    for(int i = 0; i < 40; ++i)
+    {
+        for(size_t j = 0; j < n; ++j)
+        {
+            assert(stl::distance(alist.begin(), stl::lower_bound(alist.begin(), stl::next(alist.begin(),j), i))
+                   == std::distance(arr, std::lower_bound(arr, arr+j, i)) );
+        }
+    }
+}
+
+
+
+void testUpperBoundCase1()
+{
+    int arr[] = {2, 4, 6, 6, 8, 8, 10, 10, 10, 12, 12, 12, 12, 14, 14, 16, 18, 18, 20, 22, 22, 22, 24, 32, 34};
+    size_t n = sizeof(arr)/sizeof(arr[0]);
+
+
+    for(int i = 0; i < 40; ++i)
+    {
+        for(size_t j = 0; j < n; ++j)
+        {
+            assert(stl::upper_bound(arr, arr+j, i) == std::upper_bound(arr, arr+j, i));
+        }
+    }
+}
+
+
+
+void testUpperBoundCase2()
+{
+    stl::vector<int> vec1;
+    std::vector<int> vec2;
+    vec1.reserve(100);
+    vec2.reserve(100);
+
+    for(size_t i = 1; i < 100; ++i)
+    {
+        vec1.clear();
+        vec2.resize(i);
+
+        std::generate(vec2.begin(), vec2.end(), RandomNumber(time(NULL) + rand(), 20));
+        std::sort(vec2.begin(), vec2.end());
+        std::copy(vec2.begin(), vec2.end(), stl::back_inserter(vec1));
+
+        for(int j = vec2.front()-2; j < vec2.back()+2; ++j)
+        {
+            assert(stl::distance(vec1.begin(), stl::upper_bound(vec1.begin(), vec1.end(), j))
+                   == std::distance(vec2.begin(), std::upper_bound(vec2.begin(), vec2.end(), j)));
+        }
+    }
+}
+
+
+void testUpperBoundCase3()
+{
+    int arr[] = {2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34};
+    size_t n = sizeof(arr)/sizeof(arr[0]);
+
+    stl::list<int> alist(arr, arr+n);
+
+    for(int i = 0; i < 40; ++i)
+    {
+        for(size_t j = 0; j < n; ++j)
+        {
+            assert(stl::distance(alist.begin(), stl::upper_bound(alist.begin(), stl::next(alist.begin(),j), i))
+                   == std::distance(arr, std::upper_bound(arr, arr+j, i)) );
+        }
+    }
+}
+
+
 void testIsSortCase1()
 {
     int a1[] = {1, 2, 3, 4, 5};
@@ -1326,6 +1509,20 @@ void testAlgo()
     testUniqueCopyCase1();
     testUniqueCopyCase2();
 
+
+    testBinarySearchCase1();
+    testBinarysearchCase2();
+    testBinarysearchCase3();
+
+
+    testLowerBoundCase1();
+    testLowerBoundCase2();
+    testLowerBoundCase3();
+
+
+    testUpperBoundCase1();
+    testUpperBoundCase2();
+    testUpperBoundCase3();
 
     testIsSortCase1();
     testIsSortCase2();
