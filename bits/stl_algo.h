@@ -950,8 +950,7 @@ bool __binary_search_dispatch(RandomAccessItreator first, RandomAccessItreator l
 {
     while(first < last)
     {
-        typename iterator_traits<RandomAccessItreator>::difference_type n = stl::distance(first, last);
-        RandomAccessItreator mid = first + n/2;
+        RandomAccessItreator mid = first + stl::distance(first, last)/2;
 
         if( !comp(val, *mid) && !comp(*mid, val) )
             return true;
@@ -979,7 +978,23 @@ inline bool binary_search(ForwardIterator first, ForwardIterator last, const T &
 }
 
 
+//__lower_bound_dispatch中何时将结束循环呢？当first等于last，还是first > last?
+//首先有[first, last)、[first, mid]和[mid, last)，即first < last 并且 first <= mid < last
+//因此有，first < mid+1 以及mid+1 <= last。所以当进行一次循环后，仍然有first <= last
+//当first 等于last时 将结束循环。因为每次循环后都有first <= last，所以结束循环时first等于last
 
+//__lower_bound_dispatch结束循环时，*first是否等于val，或者如果*first != val时，是否first的
+//位置就是val要存放的位置？
+//当val < *first，有val < *mid，由下面循环体可知，每次都是last在变化，first不会变。由上面的结论：
+//循环结束时，first等于last。因此循环结束时first还是等于一开始的值。符合上述的说法
+//当*(last-1) < val，有*mid < val，因此每次都是first在变化，last不会变。由上面的结论可知:
+//循环结束时，first等于last。因此循环结束时last还是等于一开始的值，并且first等于last。符合上述的说法。
+//当*first <= val <= *(last-1)时，如果comp(*mid, val),比如*mid < val,执行first = mid+1，此时
+//仍然有*first <= val <= *(last-1)。如果!comp(*mid, val)，比如mid >= val, 指向last=mid,此时
+//仍然有*first <= val,但不一定有val <= *(last-1)。假设有val <= *(last-1)，则回到一开始*first <= val <= *(last-1)。
+//循环继续进行。假如val > *(last-1)，会有*(last-1) < val <= *last。在以后的循环中，mid都是小于last的
+//换言之，comp(*mid, val)恒成立。因此每次都是first在变化。由前面的结论：退出循环时first等于last
+//所以当退出循环时，对于first有 *(first-1) < val <= *first
 template<typename RandomAccessItreator, typename T, typename StrictWeaklyCompare>
 RandomAccessItreator __lower_bound_dispatch(RandomAccessItreator first, RandomAccessItreator last, const T &val, StrictWeaklyCompare comp, stl::random_access_iterator_tag)
 {
