@@ -1133,6 +1133,46 @@ inline bool next_permutation(BidirectionalIterator first, BidirectionalIterator 
 }
 
 
+
+template<typename BidirectionalIterator, typename StrictWeaklyCompare>
+bool prev_permutation(BidirectionalIterator first, BidirectionalIterator last, StrictWeaklyCompare comp)
+{
+    if( first == last || stl::next(first)==last )
+        return false;
+
+    BidirectionalIterator i = stl::prev(last);
+
+    while(true)
+    {
+        BidirectionalIterator ii = i--;
+
+        if( comp(*ii, *i) )
+        {
+            BidirectionalIterator j = stl::prev(last);
+            while( !comp(*j, *i) ) --j;
+
+            stl::swap(*i, *j);
+            stl::reverse(ii, last);
+            return true;
+        }
+
+        if( i == first )
+        {
+            stl::reverse(first, last);
+            return false;
+        }
+    }
+}
+
+
+template<typename BidirectionalIterator>
+inline bool prev_permutation(BidirectionalIterator first, BidirectionalIterator last)
+{
+    typedef typename iterator_traits<BidirectionalIterator>::value_type ValueType;
+    return stl::prev_permutation(first, last, stl::less<ValueType>());
+}
+
+
 template<typename ForwardIterator, typename StrictWeaklyCompare>
 ForwardIterator is_sorted_until(ForwardIterator first, ForwardIterator last, StrictWeaklyCompare comp)
 {
