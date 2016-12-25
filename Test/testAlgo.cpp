@@ -1324,6 +1324,33 @@ void testNextPermutationCase1()
 }
 
 
+void testPrevPermutationCase1()
+{
+    stl::vector<int> vec1;
+    std::vector<int> vec2;
+    vec1.reserve(100);
+    vec2.reserve(100);
+
+    for(int i = 1; i < 10; ++i)//循环次数不宜过大，不然许久不能运行完毕
+    {
+        vec1.clear();
+        vec2.resize(i);
+
+        std::generate(vec2.begin(), vec2.end(), RandomNumber(time(NULL) + rand(), 20));
+        std::sort(vec2.begin(), vec2.end(), std::greater<int>());
+        std::copy(vec2.begin(), vec2.end(), stl::back_inserter(vec1));
+
+        while( std::prev_permutation(vec2.begin(), vec2.end()) )
+        {
+            assert(stl::prev_permutation(vec1.begin(), vec1.end()));
+            assert(vec1.size()==vec2.size() && stl::equal(vec1.begin(), vec1.end(), vec2.begin()));
+        }
+
+        assert(!stl::prev_permutation(vec1.begin(), vec1.end()));
+    }
+}
+
+
 void testIsSortCase1()
 {
     int a1[] = {1, 2, 3, 4, 5};
@@ -1552,6 +1579,7 @@ void testAlgo()
 
 
     testNextPermutationCase1();
+    testPrevPermutationCase1();
 
     testIsSortCase1();
     testIsSortCase2();
