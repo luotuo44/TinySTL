@@ -1094,6 +1094,25 @@ inline ForwardIterator upper_bound(ForwardIterator first, ForwardIterator last, 
 
 
 
+template<typename ForwardIterator, typename T, typename StrictWeaklyCompare>
+inline stl::pair<ForwardIterator, ForwardIterator> equal_range(ForwardIterator first, ForwardIterator last, const T &val, StrictWeaklyCompare comp)
+{
+    stl::pair<ForwardIterator, ForwardIterator> p;
+    p.first = stl::lower_bound(first, last, val, comp);
+    p.second = stl::upper_bound(first, last, val, comp);
+
+    return p;
+}
+
+
+
+template<typename ForwardIterator, typename T>
+inline stl::pair<ForwardIterator, ForwardIterator> equal_range(ForwardIterator first, ForwardIterator last, const T &val)
+{
+    return stl::equal_range(first, last, val, stl::less<T>());
+}
+
+
 
 template<typename BidirectionalIterator, typename StrictWeaklyCompare>
 bool next_permutation(BidirectionalIterator first, BidirectionalIterator last, StrictWeaklyCompare comp)
