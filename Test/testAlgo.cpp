@@ -1297,6 +1297,36 @@ void testUpperBoundCase3()
 }
 
 
+void testEqualRangeCase1()
+{
+    stl::vector<int> vec1;
+    std::vector<int> vec2;
+    vec1.reserve(100);
+    vec2.reserve(100);
+
+    stl::pair<stl::vector<int>::iterator, stl::vector<int>::iterator> vec1_pair;
+    std::pair<std::vector<int>::iterator, std::vector<int>::iterator> vec2_pair;
+
+    for(size_t i = 1; i < 100; ++i)
+    {
+        vec1.clear();
+        vec2.resize(i);
+
+        std::generate(vec2.begin(), vec2.end(), RandomNumber(time(NULL) + rand(), 20));
+        std::sort(vec2.begin(), vec2.end());
+        std::copy(vec2.begin(), vec2.end(), stl::back_inserter(vec1));
+
+        for(int j = vec2.front()-2; j < vec2.back()+2; ++j)
+        {
+            vec1_pair = stl::equal_range(vec1.begin(), vec1.end(), j);
+            vec2_pair = std::equal_range(vec2.begin(), vec2.end(), j);
+            assert(stl::distance(vec1.begin(), vec1_pair.first)  == std::distance(vec2.begin(), vec2_pair.first));
+            assert(stl::distance(vec1.begin(), vec1_pair.second) == std::distance(vec2.begin(), vec2_pair.second));
+        }
+    }
+}
+
+
 void testNextPermutationCase1()
 {
     stl::vector<int> vec1;
@@ -1576,6 +1606,8 @@ void testAlgo()
     testUpperBoundCase1();
     testUpperBoundCase2();
     testUpperBoundCase3();
+
+    testEqualRangeCase1();
 
 
     testNextPermutationCase1();
