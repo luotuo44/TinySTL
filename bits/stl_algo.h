@@ -6,6 +6,7 @@
 
 
 #include<string.h>
+#include<stdlib.h>
 
 #include"../iterator"
 #include"../type_traits"
@@ -1189,6 +1190,37 @@ inline bool prev_permutation(BidirectionalIterator first, BidirectionalIterator 
 {
     typedef typename iterator_traits<BidirectionalIterator>::value_type ValueType;
     return stl::prev_permutation(first, last, stl::less<ValueType>());
+}
+
+
+template<typename RandomAccessIterator, typename Distance>
+void __random_shuffle(RandomAccessIterator first, RandomAccessIterator last, Distance *)
+{
+    if( first == last ) return ;
+
+    for(RandomAccessIterator i = first+1; i != last; ++i)
+    {
+        stl::swap(*i, *(first + static_cast<Distance>(rand()%(i-first+1))));
+    }
+}
+
+
+template<typename RandomAccessIterator>
+inline void random_shuffle(RandomAccessIterator first, RandomAccessIterator last)
+{
+    __random_shuffle(first, last, distance_type(first));
+}
+
+
+template<typename RandomAccessIterator, typename RandomNumberGenerator>
+void random_shuffle(RandomAccessIterator first, RandomAccessIterator last, RandomNumberGenerator &rand)
+{
+    if( first == last ) return ;
+
+    for(RandomAccessIterator i = first+1; i != last; ++i)
+    {
+        stl::swap(*i, *(first + rand(i-first + 1)));
+    }
 }
 
 
