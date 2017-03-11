@@ -624,8 +624,9 @@ typename vector<T, Allocator>::iterator vector<T, Allocator>::insert(iterator po
             m_allocator.construct(m_finish, back());
             ++m_finish;
 
+            T val_copy = val;
             stl::copy_backward(pos, m_finish-2, m_finish-1);
-            *pos = val;
+            *pos = val_copy;
         }
     }
     else
@@ -724,8 +725,9 @@ void vector<T, Allocator>::__insert_fill_n(iterator pos, size_type n, const T &v
             stl::uninitialized_copy(old_finish-n, old_finish, old_finish);
             m_finish += n;
 
+            T val_copy = val;
             stl::copy_backward(pos, old_finish-n, old_finish);
-            stl::fill_n(pos, n, val);
+            stl::fill_n(pos, n, val_copy);
         }
     }
 }
